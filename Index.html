@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  />
+  <title>FlowLedger</title>
+  <meta
+    name="description"
+    content="FlowLedger entry page — redirects to login or app."
+  />
+  <meta name="theme-color" content="#01696f" />
+
+  <link rel="preconnect" href="https://api.fontshare.com" />
+  <link
+    href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="icon" href="./assets/logo.svg" type="image/svg+xml" />
+
+  <style>
+    :root,
+    [data-theme="light"] {
+      --text-xs: clamp(0.75rem, 0.7rem + 0.25vw, 0.875rem);
+      --text-sm: clamp(0.875rem, 0.8rem + 0.35vw, 1rem);
+      --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem);
+      --text-lg: clamp(1.125rem, 1rem + 0.75vw, 1.5rem);
+      --text-xl: clamp(1.5rem, 1.2rem + 1.25vw, 2.25rem);
+
+      --space-1: 0.25rem;
+      --space-2: 0.5rem;
+      --space-3: 0.75rem;
+      --space-4: 1rem;
+      --space-5: 1.25rem;
+      --space-6: 1.5rem;
+      --space-8: 2rem;
+      --space-10: 2.5rem;
+      --space-12: 3rem;
+      --space-16: 4rem;
+
+      --color-bg: #f7f6f2;
+      --color-surface: #f9f8f5;
+      --color-surface-2: #fbfbf9;
+      --color-border: #d4d1ca;
+      --color-divider: #dcd9d5;
+      --color-text: #28251d;
+      --color-text-muted: #7a7974;
+      --color-text-faint: #bab9b4;
+      --color-primary: #01696f;
+      --color-primary-hover: #0c4e54;
+      --color-primary-highlight: #cedcd8;
+      --color-success: #437a22;
+      --color-error: #a12c7b;
+
+      --radius-sm: 0.375rem;
+      --radius-md: 0.5rem;
+      --radius-lg: 0.75rem;
+      --radius-xl: 1rem;
+      --radius-full: 9999px;
+
+      --shadow-sm: 0 1px 2px rgba(40, 37, 29, 0.06);
+      --shadow-md: 0 8px 24px rgba(40, 37, 29, 0.08);
+
+      --font-body: "Satoshi", sans-serif;
+      --transition: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    [data-theme="dark"] {
+      --color-bg: #171614;
+      --color-surface: #1c1b19;
+      --color-surface-2: #201f1d;
+      --color-border: #393836;
+      --color-divider: #262523;
+      --color-text: #cdccca;
+      --color-text-muted: #979591;
+      --color-text-faint: #6a6864;
+      --color-primary: #4f98a3;
+      --color-primary-hover: #68aab4;
+      --color-primary-highlight: #313b3b;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.24);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      -webkit-text-size-adjust: none;
+      text-size-adjust: none;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100dvh;
+      font-family: var(--font-body);
+      font-size: var(--text-base);
+      line-height: 1.6;
+      color: var(--color-text);
+      background:
+        radial-gradient(circle at top left, rgba(1, 105, 111, 0.08), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(1, 105, 111, 0.06), transparent 28%),
+        var(--color-bg);
+      display: grid;
+      place-items: center;
+      padding: var(--space-4);
+    }
+
+    img,
+    svg {
+      display: block;
+      max-width: 100%;
+      height: auto;
+    }
+
+    button {
+      font: inherit;
+      border: 0;
+      background: none;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .screen {
+      width: min(100%, 720px);
+    }
+
+    .card {
+      position: relative;
+      overflow: hidden;
+      background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-md);
+      backdrop-filter: blur(12px);
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(
+          135deg,
+          color-mix(in srgb, var(--color-primary-highlight) 70%, transparent),
+          transparent 38%
+        );
+      pointer-events: none;
+    }
+
+    .shell {
+      position: relative;
+      z-index: 1;
+      padding: clamp(1.25rem, 3vw, 2rem);
+      display: grid;
+      gap: var(--space-8);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: var(--space-4);
+    }
+
+    .brand-mark {
+      width: 64px;
+      height: 64px;
+      border-radius: 20px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--color-primary-highlight) 80%, var(--color-surface-2)),
+        var(--color-surface)
+      );
+      border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+      box-shadow: var(--shadow-sm);
+      flex-shrink: 0;
+    }
+
+    .brand-mark svg {
+      width: 34px;
+      height: 34px;
+      color: var(--color-primary);
+    }
+
+    .brand-copy {
+      display: grid;
+      gap: 0.15rem;
+    }
+
+    .eyebrow {
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--color-text-muted);
+    }
+
+    h1 {
+      font-size: var(--text-xl);
+      line-height: 1.08;
+      letter-spacing: -0.03em;
+    }
+
+    .subtitle {
+      color: var(--color-text-muted);
+      max-width: 42ch;
+    }
+
+    .status-wrap {
+      display: grid;
+      gap: var(--space-4);
+    }
+
+    .progress {
+      position: relative;
+      width: 100%;
+      height: 10px;
+      border-radius: var(--radius-full);
+      background: color-mix(in srgb, var(--color-primary-highlight) 50%, var(--color-surface-2));
+      overflow: hidden;
+      border: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent);
+    }
+
+    .progress-bar {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 36%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--color-primary), var(--color-primary-hover));
+      animation: load 1.2s cubic-bezier(0.16, 1, 0.3, 1) infinite alternate;
+    }
+
+    .status-line {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--space-4);
+      align-items: center;
+      flex-wrap: wrap;
+      font-size: var(--text-sm);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-height: 40px;
+      padding: 0.5rem 0.875rem;
+      border-radius: var(--radius-full);
+      background: color-mix(in srgb, var(--color-primary-highlight) 55%, var(--color-surface));
+      color: var(--color-primary);
+      border: 1px solid color-mix(in srgb, var(--color-primary) 12%, transparent);
+      font-weight: 600;
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse 1.1s ease-in-out infinite;
+    }
+
+    .note {
+      color: var(--color-text-muted);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-3);
+    }
+
+    .btn {
+      min-height: 46px;
+      padding: 0.8rem 1rem;
+      border-radius: var(--radius-lg);
+      font-size: var(--text-sm);
+      font-weight: 600;
+      transition:
+        transform var(--transition),
+        background var(--transition),
+        border-color var(--transition),
+        color var(--transition),
+        box-shadow var(--transition);
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-primary {
+      color: #f9f8f4;
+      background: var(--color-primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-primary:hover {
+      background: var(--color-primary-hover);
+    }
+
+    .btn-secondary {
+      background: var(--color-surface-2);
+      border: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent);
+      color: var(--color-text);
+    }
+
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--space-3);
+    }
+
+    .meta-card {
+      padding: var(--space-4);
+      border-radius: var(--radius-lg);
+      background: color-mix(in srgb, var(--color-surface-2) 92%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-border) 68%, transparent);
+      display: grid;
+      gap: 0.2rem;
+    }
+
+    .meta-label {
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-muted);
+    }
+
+    .meta-value {
+      font-size: var(--text-sm);
+      font-weight: 700;
+      color: var(--color-text);
+    }
+
+    .theme-toggle {
+      position: absolute;
+      top: var(--space-4);
+      right: var(--space-4);
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: color-mix(in srgb, var(--color-surface-2) 88%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-border) 72%, transparent);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .footer-note {
+      font-size: var(--text-xs);
+      color: var(--color-text-faint);
+      text-align: center;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @keyframes load {
+      from {
+        width: 24%;
+      }
+      to {
+        width: 72%;
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.45;
+        transform: scale(0.82);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .brand {
+        align-items: flex-start;
+      }
+
+      .meta {
+        grid-template-columns: 1fr;
+      }
+
+      .status-line {
+        align-items: flex-start;
+      }
+
+      .theme-toggle {
+        top: var(--space-3);
+        right: var(--space-3);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="screen">
+    <section class="card" aria-labelledby="app-title">
+      <button
+        class="theme-toggle"
+        type="button"
+        id="themeToggle"
+        aria-label="Switch theme"
+      >
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79"></path>
+        </svg>
+      </button>
+
+      <div class="shell">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 15h22"></path>
+              <path d="M13 24h22"></path>
+              <path d="M13 33h14"></path>
+              <path d="M36 11v26"></path>
+              <path d="M32 15c0-2.2 1.8-4 4-4"></path>
+            </svg>
+          </div>
+
+          <div class="brand-copy">
+            <span class="eyebrow">Personal finance</span>
+            <h1 id="app-title">FlowLedger</h1>
+            <p class="subtitle">
+              Getting your workspace ready across mobile, tablet, and desktop.
+            </p>
+          </div>
+        </div>
+
+        <div class="status-wrap">
+          <div class="progress" aria-hidden="true">
+            <div class="progress-bar"></div>
+          </div>
+
+          <div class="status-line">
+            <div class="status-pill" id="statusPill">
+              <span class="dot"></span>
+              <span id="statusText">Checking session...</span>
+            </div>
+            <p class="note" id="noteText">Please wait a moment.</p>
+          </div>
+        </div>
+
+        <div class="meta">
+          <div class="meta-card">
+            <span class="meta-label">Accounts</span>
+            <span class="meta-value">Multi-account ready</span>
+          </div>
+          <div class="meta-card">
+            <span class="meta-label">Tracking</span>
+            <span class="meta-value">Reimburse + ledger</span>
+          </div>
+          <div class="meta-card">
+            <span class="meta-label">Access</span>
+            <span class="meta-value">Web on any device</span>
+          </div>
+        </div>
+
+        <div class="actions hidden" id="manualActions">
+          <button class="btn btn-primary" type="button" id="goLoginBtn">
+            Go to login
+          </button>
+          <button class="btn btn-secondary" type="button" id="goAppBtn">
+            Open app
+          </button>
+        </div>
+
+        <p class="footer-note">
+          If redirect does not happen automatically, use one of the buttons above.
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const root = document.documentElement;
+      const themeToggle = document.getElementById("themeToggle");
+      const themeIcon = document.getElementById("themeIcon");
+
+      function applyTheme(theme) {
+        root.setAttribute("data-theme", theme);
+        themeIcon.innerHTML =
+          theme === "dark"
+            ? '<circle cx="12" cy="12" r="5"></circle><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>'
+            : '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79"></path>';
+      }
+
+      const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      let currentTheme = systemDark ? "dark" : "light";
+      applyTheme(currentTheme);
+
+      themeToggle.addEventListener("click", () => {
+        currentTheme = currentTheme === "dark" ? "light" : "dark";
+        applyTheme(currentTheme);
+      });
+    })();
+
+    (function () {
+      const statusText = document.getElementById("statusText");
+      const noteText = document.getElementById("noteText");
+      const manualActions = document.getElementById("manualActions");
+      const goLoginBtn = document.getElementById("goLoginBtn");
+      const goAppBtn = document.getElementById("goAppBtn");
+
+      const LOGIN_URL = "./login.html";
+      const APP_URL = "./app.html";
+
+      function go(url) {
+        window.location.replace(url);
+      }
+
+      goLoginBtn.addEventListener("click", () => go(LOGIN_URL));
+      goAppBtn.addEventListener("click", () => go(APP_URL));
+
+      async function checkSession() {
+        statusText.textContent = "Checking session...";
+        noteText.textContent = "Looking for an active sign-in.";
+
+        try {
+          // Future-ready hook:
+          // when js/supabase.js exists, attach your client as:
+          // window.flowledgerSupabase = supabase;
+          const client = window.flowledgerSupabase;
+
+          if (!client || !client.auth || typeof client.auth.getSession !== "function") {
+            statusText.textContent = "Supabase not connected yet";
+            noteText.textContent = "Sending you to login for now.";
+            setTimeout(() => go(LOGIN_URL), 900);
+            return;
+          }
+
+          const { data, error } = await client.auth.getSession();
+
+          if (error) {
+            throw error;
+          }
+
+          if (data?.session) {
+            statusText.textContent = "Session found";
+            noteText.textContent = "Opening your app.";
+            setTimeout(() => go(APP_URL), 450);
+          } else {
+            statusText.textContent = "No active session";
+            noteText.textContent = "Redirecting to login.";
+            setTimeout(() => go(LOGIN_URL), 650);
+          }
+        } catch (err) {
+          console.error("Index session check failed:", err);
+          statusText.textContent = "Could not verify session";
+          noteText.textContent = "Use manual buttons if needed.";
+          manualActions.classList.remove("hidden");
+          setTimeout(() => go(LOGIN_URL), 1400);
+        }
+      }
+
+      checkSession();
+    })();
+  </script>
+</body>
+</html>
