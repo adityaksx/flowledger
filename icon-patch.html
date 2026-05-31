@@ -1,0 +1,22 @@
+<!-- ICON GALLERY PATCH START -->
+<div class="modal-backdrop hidden" id="iconPickerModal">
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <h3 class="modal-title">Choose an icon</h3>
+      <button class="icon-btn" type="button" data-close="iconPickerModal">✕</button>
+    </div>
+    <div class="fields">
+      <div class="field">
+        <label class="label">Search icons</label>
+        <input class="input" type="text" id="iconSearch" placeholder="Search food, bank, salary..." />
+      </div>
+      <div class="import-tabs" id="iconTabRow">
+        <button class="type-tab active" data-icon-group="all" type="button">All</button>
+        <button class="type-tab" data-icon-group="income" type="button">Income</button>
+        <button class="type-tab" data-icon-group="expense" type="button">Expense</button>
+        <button class="type-tab" data-icon-group="accounts" type="button">Accounts</button>
+      </div>
+      <div class="icon-grid" id="iconGrid"></div>
+    </div>
+  </div>
+</div>
