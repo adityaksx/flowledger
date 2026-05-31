@@ -4,80 +4,87 @@ const { data: { session } } = await supabase.auth.getSession();
 if (!session) { window.location.replace("./login.html"); }
 const USER = session.user;
 
-// ─── State ───────────────────────────────────────────────────────────────────
 let accounts=[], categories=[], transactions=[], reimbursements=[], profile={};
 let currentTxnType='expense', currentCatType='expense';
 let currentImportKind='transactions', importRows=[], importHeaders=[];
 let iconTargetInput=null;
 
-// ─── Icon gallery ─────────────────────────────────────────────────────────────
+const ICON_BASE = 'https://raw.githubusercontent.com/adityaksx/flowledger/d210335131163837d61d482502dd1a1c8c292e20/assets/icons/';
+
 const ICONS = [
-  {g:'accounts', k:'bank',        i:'🏦', l:'Bank'},
-  {g:'accounts', k:'wallet',      i:'👛', l:'Wallet'},
-  {g:'accounts', k:'card',        i:'💳', l:'Card'},
-  {g:'accounts', k:'cash',        i:'💵', l:'Cash'},
-  {g:'accounts', k:'upi',         i:'📱', l:'UPI'},
-  {g:'accounts', k:'savings',     i:'🐷', l:'Savings'},
-  {g:'accounts', k:'credit',      i:'🪪', l:'Credit'},
-  {g:'accounts', k:'invest',      i:'📈', l:'Invest'},
-  {g:'accounts', k:'atm',         i:'🏧', l:'ATM'},
-  {g:'income',   k:'salary',      i:'💰', l:'Salary'},
-  {g:'income',   k:'bonus',       i:'🎁', l:'Bonus'},
-  {g:'income',   k:'cashback',    i:'💚', l:'Cashback'},
-  {g:'income',   k:'interest',    i:'💹', l:'Interest'},
-  {g:'income',   k:'refund',      i:'↩️', l:'Refund'},
-  {g:'income',   k:'gift',        i:'🎉', l:'Gift'},
-  {g:'income',   k:'freelance',   i:'💼', l:'Freelance'},
-  {g:'income',   k:'dividend',    i:'🏛️', l:'Dividend'},
-  {g:'income',   k:'reward',      i:'🏆', l:'Reward'},
-  {g:'expense',  k:'food',        i:'🍔', l:'Food'},
-  {g:'expense',  k:'grocery',     i:'🧺', l:'Grocery'},
-  {g:'expense',  k:'travel',      i:'🚆', l:'Travel'},
-  {g:'expense',  k:'fuel',        i:'⛽', l:'Fuel'},
-  {g:'expense',  k:'medical',     i:'💊', l:'Medical'},
-  {g:'expense',  k:'education',   i:'📚', l:'Education'},
-  {g:'expense',  k:'shopping',    i:'🛍️', l:'Shopping'},
-  {g:'expense',  k:'rent',        i:'🏠', l:'Rent'},
-  {g:'expense',  k:'entertain',   i:'🎬', l:'Movie'},
-  {g:'expense',  k:'bill',        i:'🧾', l:'Bill'},
-  {g:'expense',  k:'internet',    i:'🌐', l:'Internet'},
-  {g:'expense',  k:'mobile',      i:'📶', l:'Mobile'},
-  {g:'expense',  k:'coffee',      i:'☕', l:'Coffee'},
-  {g:'expense',  k:'dining',      i:'🍽️', l:'Dining'},
-  {g:'expense',  k:'snacks',      i:'🍪', l:'Snacks'},
-  {g:'expense',  k:'clothes',     i:'👕', l:'Clothes'},
-  {g:'expense',  k:'home',        i:'🛋️', l:'Home'},
-  {g:'expense',  k:'repair',      i:'🔧', l:'Repair'},
-  {g:'expense',  k:'sub',         i:'📺', l:'Subscr.'},
-  {g:'expense',  k:'pet',         i:'🐶', l:'Pet'},
-  {g:'expense',  k:'beauty',      i:'💅', l:'Beauty'},
-  {g:'expense',  k:'sports',      i:'🏏', l:'Sports'},
-  {g:'expense',  k:'health',      i:'❤️', l:'Health'},
-  {g:'expense',  k:'kids',        i:'🧸', l:'Kids'},
-  {g:'expense',  k:'donation',    i:'🤝', l:'Donation'},
-  {g:'expense',  k:'tax',         i:'🧮', l:'Tax'},
-  {g:'expense',  k:'car',         i:'🚗', l:'Car'},
-  {g:'expense',  k:'recharge',    i:'🔋', l:'Recharge'},
+  {g:'accounts', k:'bank',      img:'Bank.png',         l:'Bank'},
+{g:'accounts', k:'wallet',    img:'wallet.png',       l:'Wallet'},
+{g:'accounts', k:'card',      img:'Card.png',         l:'Card'},
+{g:'accounts', k:'cash',      img:'Cash.png',         l:'Cash'},
+{g:'accounts', k:'upi',       img:'cash_1.png',       l:'UPI'},
+{g:'accounts', k:'savings',   img:'Safe.png',         l:'Savings'},
+{g:'accounts', k:'credit',    img:'Card.png',         l:'Credit'},
+{g:'accounts', k:'invest',    img:'Stocks.png',       l:'Invest'},
+{g:'accounts', k:'atm',       img:'withdraw.png',     l:'ATM'},
+
+{g:'income',   k:'salary',    img:'salary.png',       l:'Salary'},
+{g:'income',   k:'bonus',     img:'bonus.png',        l:'Bonus'},
+{g:'income',   k:'cashback',  img:'cashback.png',     l:'Cashback'},
+{g:'income',   k:'interest',  img:'interest.png',     l:'Interest'},
+{g:'income',   k:'refund',    img:'Refund.png',       l:'Refund'},
+{g:'income',   k:'gift',      img:'gift.png',         l:'Gift'},
+{g:'income',   k:'freelance', img:'freelance.png',    l:'Freelance'},
+{g:'income',   k:'dividend',  img:'dividend.png',     l:'Dividend'},
+{g:'income',   k:'reward',    img:'reward.png',       l:'Reward'},
+
+{g:'expense',  k:'food',      img:'food.png',         l:'Food'},
+{g:'expense',  k:'grocery',   img:'grocery.png',      l:'Grocery'},
+{g:'expense',  k:'travel',    img:'train.png',        l:'Travel'},
+{g:'expense',  k:'fuel',      img:'fuel.png',         l:'Fuel'},
+{g:'expense',  k:'medical',   img:'medical.png',      l:'Medical'},
+{g:'expense',  k:'education', img:'stationery.png',   l:'Education'},
+{g:'expense',  k:'shopping',  img:'shopping.png',     l:'Shopping'},
+{g:'expense',  k:'rent',      img:'rent.png',         l:'Rent'},
+{g:'expense',  k:'entertain', img:'movie.png',        l:'Movie'},
+{g:'expense',  k:'bill',      img:'bill.png',         l:'Bill'},
+{g:'expense',  k:'internet',  img:'internet.png',     l:'Internet'},
+{g:'expense',  k:'mobile',    img:'recharge.png',     l:'Mobile'},
+{g:'expense',  k:'coffee',    img:'dessert.png',      l:'Coffee'},
+{g:'expense',  k:'dining',    img:'food.png',         l:'Dining'},
+{g:'expense',  k:'snacks',    img:'snacks.png',       l:'Snacks'},
+{g:'expense',  k:'clothes',   img:'clothes.png',      l:'Clothes'},
+{g:'expense',  k:'home',      img:'home.png',         l:'Home'},
+{g:'expense',  k:'repair',    img:'repair.png',       l:'Repair'},
+{g:'expense',  k:'sub',       img:'subscription.png', l:'Subscr.'},
+{g:'expense',  k:'pet',       img:'misc.png',         l:'Pet'},
+{g:'expense',  k:'beauty',    img:'misc.png',         l:'Beauty'},
+{g:'expense',  k:'sports',    img:'gym.png',          l:'Sports'},
+{g:'expense',  k:'health',    img:'medical.png',      l:'Health'},
+{g:'expense',  k:'kids',      img:'gift.png',         l:'Kids'},
+{g:'expense',  k:'donation',  img:'gift.png',         l:'Donation'},
+{g:'expense',  k:'tax',       img:'tax.png',          l:'Tax'},
+{g:'expense',  k:'car',       img:'auto.png',         l:'Car'},
+{g:'expense',  k:'recharge',  img:'recharge.png',     l:'Recharge'},
 ];
 
-// ─── Routes ──────────────────────────────────────────────────────────────────
 const ROUTES = {
-  dashboard:    { title:'Dashboard',    sub:'Your money overview at a glance.'         },
+  dashboard:    { title:'Dashboard',    sub:'Your money overview at a glance.' },
   accounts:     { title:'Accounts',     sub:'All wallets, bank accounts, cash, cards.' },
-  transactions: { title:'Transactions', sub:'Income, expense, and transfer history.'   },
-  reimburse:    { title:'Reimburse',    sub:'Track money you paid for others.'          },
-  ledger:       { title:'Ledger',       sub:'Long-term lend and borrow per person.'    },
-  recurring:    { title:'Recurring',    sub:'Bills, subscriptions, salary reminders.'  },
-  reports:      { title:'Reports',      sub:'Monthly trends and category breakdown.'   },
-  settings:     { title:'Settings',     sub:'Profile, categories, and preferences.'    },
+  transactions: { title:'Transactions', sub:'Income, expense, and transfer history.' },
+  reimburse:    { title:'Reimburse',    sub:'Track money you paid for others.' },
+  ledger:       { title:'Ledger',       sub:'Long-term lend and borrow per person.' },
+  recurring:    { title:'Recurring',    sub:'Bills, subscriptions, salary reminders.' },
+  reports:      { title:'Reports',      sub:'Monthly trends and category breakdown.' },
+  settings:     { title:'Settings',     sub:'Profile, categories, and preferences.' },
 };
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 const today = () => new Date().toISOString().slice(0, 10);
 const route = () => ROUTES[location.hash.replace('#','')] ? location.hash.replace('#','') : 'dashboard';
 const sym   = c => ({USD:'$', EUR:'€', GBP:'£'}[c] || '₹');
 const fmt   = (n, c='₹') => c + Number(n||0).toLocaleString('en-IN', {minimumFractionDigits:0, maximumFractionDigits:2});
+
+function iconHTML(val, fallback='💳') {
+  if (!val) return fallback;
+  if (String(val).startsWith('http')) return `<img src="${val}" alt="" style="width:28px;height:28px;object-fit:contain;" />`;
+  return val;
+}
+
 function toast(msg) {
   let t = $('toast');
   if (!t) { t=document.createElement('div'); t.id='toast'; t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#28251d;color:#f9f8f4;padding:10px 20px;border-radius:999px;font-size:14px;font-weight:600;z-index:9999;display:none'; document.body.appendChild(t); }
@@ -89,11 +96,10 @@ function closeModal(id) { $(id).classList.add('hidden'); }
 function parseDate(v) {
   if (!v) return today();
   const s = String(v).trim();
-  // already YYYY-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
   const parts = s.split(/[\/\-]/);
   if (parts.length === 3) {
-    if (parts[0].length === 4) return s; // YYYY-?-?
+    if (parts[0].length === 4) return s;
     const fmt = $('importDateFormat') ? $('importDateFormat').value : 'dd/mm/yyyy';
     if (fmt === 'mm/dd/yyyy') return `${parts[2]}-${parts[0].padStart(2,'0')}-${parts[1].padStart(2,'0')}`;
     return `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
@@ -103,21 +109,20 @@ function parseDate(v) {
 
 function dedupeKey(o) { return [o.date, o.amount, o.type, o.account_id||'', o.transfer_to_account_id||'', o.remarks||''].join('|'); }
 
-// ─── Data loading ─────────────────────────────────────────────────────────────
 async function loadAll() {
   const uid = USER.id;
   const [r1,r2,r3,r4,r5] = await Promise.all([
     supabase.from('accounts').select('*').eq('user_id',uid).eq('is_archived',false).order('created_at'),
-    supabase.from('categories').select('*').eq('user_id',uid).order('type').order('name'),
-    supabase.from('transactions').select('*').eq('user_id',uid).order('date',{ascending:false}).order('created_at',{ascending:false}).limit(3000),
-    supabase.from('reimbursements').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
-    supabase.from('profiles').select('*').eq('id',uid).single(),
+                                             supabase.from('categories').select('*').eq('user_id',uid).order('type').order('name'),
+                                             supabase.from('transactions').select('*').eq('user_id',uid).order('date',{ascending:false}).order('created_at',{ascending:false}).limit(3000),
+                                             supabase.from('reimbursements').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
+                                             supabase.from('profiles').select('*').eq('id',uid).single(),
   ]);
-  accounts      = r1.data || [];
-  categories    = r2.data || [];
-  transactions  = r3.data || [];
-  reimbursements= r4.data || [];
-  profile       = r5.data || {};
+  accounts = r1.data || [];
+  categories = r2.data || [];
+  transactions = r3.data || [];
+  reimbursements = r4.data || [];
+  profile = r5.data || {};
 }
 
 function accountBalance(id) {
@@ -125,8 +130,8 @@ function accountBalance(id) {
   let bal = Number(acc?.opening_balance || 0);
   for (const t of transactions) {
     if (t.is_transfer) {
-      if (t.account_id === id)              bal -= Number(t.amount);
-      if (t.transfer_to_account_id === id)  bal += Number(t.amount);
+      if (t.account_id === id) bal -= Number(t.amount);
+      if (t.transfer_to_account_id === id) bal += Number(t.amount);
     } else if (t.account_id === id) {
       bal += t.type === 'income' ? Number(t.amount) : -Number(t.amount);
     }
@@ -139,14 +144,13 @@ function monthTxns() {
   return transactions.filter(t => t.date && t.date.startsWith(ym));
 }
 
-// ─── Select helpers ───────────────────────────────────────────────────────────
 function accSelect(id, label='Select account') {
   const s = $(id); if (!s) return;
-  s.innerHTML = `<option value="">${label}</option>` + accounts.map(a => `<option value="${a.id}">${a.emoji||'💳'} ${a.name}</option>`).join('');
+  s.innerHTML = `<option value="">${label}</option>` + accounts.map(a => `<option value="${a.id}">${iconHTML(a.emoji, '💳')} ${a.name}</option>`).join('');
 }
 function catSelect(id, type='expense') {
   const s = $(id); if (!s) return;
-  s.innerHTML = '<option value="">No category</option>' + categories.filter(c => c.type===type).map(c => `<option value="${c.id}">${c.emoji||'📂'} ${c.name}</option>`).join('');
+  s.innerHTML = '<option value="">No category</option>' + categories.filter(c => c.type===type).map(c => `<option value="${c.id}">${iconHTML(c.emoji, '📂')} ${c.name}</option>`).join('');
 }
 function findAccount(name) {
   const n = String(name||'').trim().toLowerCase();
@@ -157,52 +161,52 @@ function findCategory(name, type) {
   return categories.find(c => c.type===type && c.name.trim().toLowerCase() === n) || categories.find(c => c.type===type && c.name.trim().toLowerCase().includes(n)) || null;
 }
 
-// ─── Render helpers ───────────────────────────────────────────────────────────
 function txnHTML(t) {
   const cat = categories.find(c => c.id === t.category_id);
   const acc = accounts.find(a => a.id === t.account_id);
   const to  = accounts.find(a => a.id === t.transfer_to_account_id);
-  const type  = t.is_transfer ? 'transfer' : t.type;
-  const icon  = t.is_transfer ? '🔄' : (cat?.emoji || '💸');
+  const type = t.is_transfer ? 'transfer' : t.type;
+  const icon = t.is_transfer ? '🔄' : iconHTML(cat?.emoji, '💸');
   const label = t.is_transfer ? `${acc?.name||'?'} → ${to?.name||'?'}` : (cat?.name || 'Uncategorised');
-  const sub   = [acc?.name, t.remarks].filter(Boolean).join(' · ');
-  const sign  = t.is_transfer ? '' : (t.type==='income' ? '+' : '-');
-  const cls   = type==='income' ? 'green' : type==='expense' ? 'red' : 'orange';
+  const sub = [acc?.name, t.remarks].filter(Boolean).join(' · ');
+  const sign = t.is_transfer ? '' : (t.type==='income' ? '+' : '-');
+  const cls = type==='income' ? 'green' : type==='expense' ? 'red' : 'orange';
   return `<div class="txn-item">
-    <div class="ico-circle">${icon}</div>
-    <div class="txn-meta"><div class="txn-cat">${label}</div><div class="txn-sub">${sub}</div></div>
-    <div class="txn-right"><div class="${cls}">${sign}${fmt(t.amount)}</div><div class="txn-sub">${t.date}</div></div>
-    <div class="txn-actions">
-      <button class="btn-sm" onclick="editTransaction('${t.id}')">Edit</button>
-      <button class="btn-danger" onclick="deleteTransaction('${t.id}')">Delete</button>
-    </div>
+  <div class="ico-circle">${icon}</div>
+  <div class="txn-meta"><div class="txn-cat">${label}</div><div class="txn-sub">${sub}</div></div>
+  <div class="txn-right"><div class="${cls}">${sign}${fmt(t.amount)}</div><div class="txn-sub">${t.date}</div></div>
+  <div class="txn-actions">
+  <button class="btn-sm" onclick="editTransaction('${t.id}')">Edit</button>
+  <button class="btn-danger" onclick="deleteTransaction('${t.id}')">Delete</button>
+  </div>
   </div>`;
 }
 
 function renderProfile() {
   const name = profile.name || USER.email?.split('@')[0] || 'User';
-  $('userName').textContent  = name;
+  $('userName').textContent = name;
   $('userEmail').textContent = USER.email || '';
-  $('userAvatar').textContent= name[0].toUpperCase();
-  if ($('settingName'))     $('settingName').value     = name;
+  $('userAvatar').textContent = name[0].toUpperCase();
+  if ($('settingName')) $('settingName').value = name;
   if ($('settingCurrency')) $('settingCurrency').value = profile.currency || 'INR';
 }
 
-// ─── Icon picker ──────────────────────────────────────────────────────────────
 function renderIconGrid() {
   const q = ($('iconSearch')?.value || '').trim().toLowerCase();
   const g = document.querySelector('#iconTabRow .active')?.dataset.iconGroup || 'all';
   const items = ICONS.filter(x => g==='all' || x.g===g).filter(x => !q || x.l.toLowerCase().includes(q) || x.k.toLowerCase().includes(q));
   $('iconGrid').innerHTML = items.map(x =>
-    `<button type="button" class="icon-chip" data-icon="${x.i}">
-      <span class="ico">${x.i}</span><span class="lbl">${x.l}</span>
-    </button>`
+  `<button type="button" class="icon-chip" data-icon="${ICON_BASE}${x.img}">
+  <img src="${ICON_BASE}${x.img}" alt="${x.l}" style="width:36px;height:36px;object-fit:contain;" />
+  <span class="lbl">${x.l}</span>
+  </button>`
   ).join('');
   $('iconGrid').querySelectorAll('.icon-chip').forEach(b => b.onclick = () => {
     if (iconTargetInput) iconTargetInput.value = b.dataset.icon;
     closeModal('iconPickerModal');
   });
 }
+
 window.openIconPicker = function(id) {
   iconTargetInput = $(id);
   $('iconSearch').value = '';
@@ -212,67 +216,66 @@ window.openIconPicker = function(id) {
   openModal('iconPickerModal');
 };
 
-// ─── Main render ──────────────────────────────────────────────────────────────
 function render() {
   const r = route(), meta = ROUTES[r];
   $('pageTitle').textContent = meta.title;
-  $('pageSub').textContent   = meta.sub;
+  $('pageSub').textContent = meta.sub;
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.dataset.view === r));
   document.querySelectorAll('[data-route]').forEach(a => a.classList.toggle('active', a.dataset.route === r));
   document.body.classList.remove('sidebar-open');
 
   if (r === 'dashboard') renderDashboard();
-  if (r === 'accounts')  renderAccounts();
+  if (r === 'accounts') renderAccounts();
   if (r === 'transactions') renderTransactions();
   if (r === 'reimburse') renderReimburse();
-  if (r === 'reports')   renderReports();
-  if (r === 'settings')  renderSettings();
-  if (r === 'ledger')    $('ledgerList').innerHTML    = '<div class="empty-state">No ledger entries yet.</div>';
+  if (r === 'reports') renderReports();
+  if (r === 'settings') renderSettings();
+  if (r === 'ledger') $('ledgerList').innerHTML = '<div class="empty-state">No ledger entries yet.</div>';
   if (r === 'recurring') $('recurringList').innerHTML = '<div class="empty-state">No recurring rules yet.</div>';
 }
 
 function renderDashboard() {
-  const total   = accounts.reduce((s,a) => s + accountBalance(a.id), 0);
-  const mt      = monthTxns();
-  const income  = mt.filter(t => t.type==='income' && !t.is_transfer).reduce((s,t) => s+Number(t.amount), 0);
+  const total = accounts.reduce((s,a) => s + accountBalance(a.id), 0);
+  const mt = monthTxns();
+  const income = mt.filter(t => t.type==='income' && !t.is_transfer).reduce((s,t) => s+Number(t.amount), 0);
   const expense = mt.filter(t => t.type==='expense' && !t.is_transfer).reduce((s,t) => s+Number(t.amount), 0);
-  const due     = reimbursements.filter(x => x.status!=='settled').reduce((s,x) => s+(Number(x.total_amount)-Number(x.paid_back||0)), 0);
-  $('kpiBalance').textContent   = fmt(total);
-  $('kpiIncome').textContent    = fmt(income);
-  $('kpiExpense').textContent   = fmt(expense);
+  const due = reimbursements.filter(x => x.status!=='settled').reduce((s,x) => s+(Number(x.total_amount)-Number(x.paid_back||0)), 0);
+  $('kpiBalance').textContent = fmt(total);
+  $('kpiIncome').textContent = fmt(income);
+  $('kpiExpense').textContent = fmt(expense);
   $('kpiReimburse').textContent = fmt(due);
-  $('kpiAccounts').textContent  = `${accounts.length} account${accounts.length!==1?'s':''}`;
-  $('dashRecentList').innerHTML  = transactions.slice(0,8).map(txnHTML).join('') || '<div class="empty-state">No transactions yet.</div>';
+  $('kpiAccounts').textContent = `${accounts.length} account${accounts.length!==1?'s':''}`;
+  $('dashRecentList').innerHTML = transactions.slice(0,8).map(txnHTML).join('') || '<div class="empty-state">No transactions yet.</div>';
   $('dashAccountsList').innerHTML = accounts.map(a => `
-    <div class="txn-item">
-      <div class="ico-circle">${a.emoji||'💳'}</div>
-      <div class="txn-meta"><div class="txn-cat">${a.name}</div><div class="txn-sub">${a.type}</div></div>
-      <div class="txn-right"><div>${fmt(accountBalance(a.id))}</div></div>
-    </div>`).join('') || '<div class="empty-state">No accounts yet.</div>';
+  <div class="txn-item">
+  <div class="ico-circle">${iconHTML(a.emoji, '💳')}</div>
+  <div class="txn-meta"><div class="txn-cat">${a.name}</div><div class="txn-sub">${a.type}</div></div>
+  <div class="txn-right"><div>${fmt(accountBalance(a.id))}</div></div>
+  </div>`).join('') || '<div class="empty-state">No accounts yet.</div>';
 }
 
 function renderAccounts() {
   $('accountsList').innerHTML = accounts.length ? accounts.map(a => `
-    <article class="account-card">
-      <div class="ico-circle">${a.emoji||'💳'}</div>
-      <div><strong>${a.name}</strong><div class="txn-sub">${a.type}</div></div>
-      <div style="margin-left:auto;text-align:right"><div class="kpi-value">${fmt(accountBalance(a.id))}</div></div>
-      <div class="row-actions" style="margin-top:8px">
-        <button class="btn-sm" onclick="editAccount('${a.id}')">Edit</button>
-        <button class="btn-danger" onclick="deleteAccount('${a.id}')">Delete</button>
-      </div>
-    </article>`).join('') : '<div class="empty-state">No accounts yet.</div>';
+  <article class="account-card">
+  <div class="ico-circle">${iconHTML(a.emoji, '💳')}</div>
+  <div><strong>${a.name}</strong><div class="txn-sub">${a.type}</div></div>
+  <div style="margin-left:auto;text-align:right"><div class="kpi-value">${fmt(accountBalance(a.id))}</div></div>
+  <div class="row-actions" style="margin-top:8px">
+  <button class="btn-sm" onclick="editAccount('${a.id}')">Edit</button>
+  <button class="btn-danger" onclick="deleteAccount('${a.id}')">Delete</button>
+  </div>
+  </article>`).join('') : '<div class="empty-state">No accounts yet.</div>';
 }
 
 function renderTransactions() {
   const tType = $('txnFilterType').value;
-  const tAcc  = $('txnFilterAccount').value;
-  const tMon  = $('txnFilterMonth').value;
-  $('txnFilterAccount').innerHTML = '<option value="">All accounts</option>' + accounts.map(a => `<option value="${a.id}" ${a.id===tAcc?'selected':''}>${a.emoji||'💳'} ${a.name}</option>`).join('');
+  const tAcc = $('txnFilterAccount').value;
+  const tMon = $('txnFilterMonth').value;
+  $('txnFilterAccount').innerHTML = '<option value="">All accounts</option>' + accounts.map(a => `<option value="${a.id}" ${a.id===tAcc?'selected':''}>${iconHTML(a.emoji, '💳')} ${a.name}</option>`).join('');
   let list = [...transactions];
   if (tType) list = list.filter(t => t.is_transfer ? tType==='transfer' : t.type===tType);
-  if (tAcc)  list = list.filter(t => t.account_id===tAcc || t.transfer_to_account_id===tAcc);
-  if (tMon)  list = list.filter(t => t.date && t.date.startsWith(tMon));
+  if (tAcc) list = list.filter(t => t.account_id===tAcc || t.transfer_to_account_id===tAcc);
+  if (tMon) list = list.filter(t => t.date && t.date.startsWith(tMon));
   $('txnList').innerHTML = list.length ? list.map(txnHTML).join('') : '<div class="empty-state">No transactions match these filters.</div>';
 }
 
@@ -282,25 +285,25 @@ function renderReimburse() {
     const due = Number(x.total_amount) - (Number(x.paid_back)||0);
     const badgeCls = x.status==='settled' ? 'badge-settled' : x.status==='partial' ? 'badge-partial' : 'badge-pending';
     return `<div class="reimb-item">
-      <div class="card-head">
-        <div><strong>👤 ${x.person_name}</strong><div class="txn-sub">Total: ${fmt(x.total_amount)} · Paid: ${fmt(x.paid_back||0)} · Due: ${fmt(due)}</div></div>
-        <span class="badge ${badgeCls}">${x.status}</span>
-      </div>
-      <div class="progress-bar-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
-      <div class="row-actions">
-        ${x.status!=='settled' ? `<button class="btn-sm" onclick="openPayback('${x.id}')">Record payback</button>` : ''}
-        <button class="btn-danger" onclick="deleteReimburse('${x.id}')">Delete</button>
-      </div>
+    <div class="card-head">
+    <div><strong>👤 ${x.person_name}</strong><div class="txn-sub">Total: ${fmt(x.total_amount)} · Paid: ${fmt(x.paid_back||0)} · Due: ${fmt(due)}</div></div>
+    <span class="badge ${badgeCls}">${x.status}</span>
+    </div>
+    <div class="progress-bar-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
+    <div class="row-actions">
+    ${x.status!=='settled' ? `<button class="btn-sm" onclick="openPayback('${x.id}')">Record payback</button>` : ''}
+    <button class="btn-danger" onclick="deleteReimburse('${x.id}')">Delete</button>
+    </div>
     </div>`;
   }).join('') : '<div class="empty-state">No reimbursements yet.</div>';
 }
 
 function renderReports() {
   const c = profile.currency || 'INR', s = sym(c);
-  const mt      = monthTxns();
-  const income  = mt.filter(t => t.type==='income' && !t.is_transfer).reduce((s,t) => s+Number(t.amount), 0);
+  const mt = monthTxns();
+  const income = mt.filter(t => t.type==='income' && !t.is_transfer).reduce((s,t) => s+Number(t.amount), 0);
   const expense = mt.filter(t => t.type==='expense' && !t.is_transfer).reduce((s,t) => s+Number(t.amount), 0);
-  $('repIncome').textContent  = fmt(income,  s);
+  $('repIncome').textContent = fmt(income, s);
   $('repExpense').textContent = fmt(expense, s);
   $('repSavings').textContent = fmt(income - expense, s);
   const map = {};
@@ -309,27 +312,26 @@ function renderReports() {
   $('reportCatList').innerHTML = Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([cid,amt]) => {
     const cat = categories.find(c => c.id===cid);
     const pct = Math.round((amt/total)*100);
-    return `<div class="txn-item"><div class="ico-circle">${cat?.emoji||'📂'}</div><div class="txn-meta">${cat?.name||'Other'}<div class="progress-bar-wrap" style="margin-top:4px"><div class="progress-bar" style="width:${pct}%"></div></div></div><div class="txn-right">${fmt(amt,s)}</div></div>`;
+    return `<div class="txn-item"><div class="ico-circle">${iconHTML(cat?.emoji, '📂')}</div><div class="txn-meta">${cat?.name||'Other'}<div class="progress-bar-wrap" style="margin-top:4px"><div class="progress-bar" style="width:${pct}%"></div></div></div><div class="txn-right">${fmt(amt,s)}</div></div>`;
   }).join('') || '<div class="empty-state">No expense data this month.</div>';
 }
 
 function renderSettings() {
   renderProfile();
   $('categoryList').innerHTML = categories.length ? categories.map(c => `
-    <div class="txn-item">
-      <div class="ico-circle">${c.emoji||'📂'}</div>
-      <div class="txn-meta"><div class="txn-cat">${c.name}</div><div class="txn-sub">${c.type}</div></div>
-      ${!c.is_default ? `<button class="btn-danger" style="margin-left:auto" onclick="deleteCat('${c.id}')">✕</button>` : ''}
-    </div>`).join('') : '<div class="empty-state">No categories yet.</div>';
+  <div class="txn-item">
+  <div class="ico-circle">${iconHTML(c.emoji, '📂')}</div>
+  <div class="txn-meta"><div class="txn-cat">${c.name}</div><div class="txn-sub">${c.type}</div></div>
+  ${!c.is_default ? `<button class="btn-danger" style="margin-left:auto" onclick="deleteCat('${c.id}')">✕</button>` : ''}
+  </div>`).join('') : '<div class="empty-state">No categories yet.</div>';
 }
 
-// ─── Window-level actions (called from HTML onclick) ──────────────────────────
 window.editAccount = id => {
   const a = accounts.find(x => x.id===id); if (!a) return;
-  $('accountId').value      = a.id;
-  $('accountIcon').value    = a.emoji || '💳';
-  $('accountName').value    = a.name;
-  $('accountType').value    = a.type;
+  $('accountId').value = a.id;
+  $('accountIcon').value = a.emoji || '💳';
+  $('accountName').value = a.name;
+  $('accountType').value = a.type;
   $('accountBalance').value = a.opening_balance || 0;
   $('accountModalTitle').textContent = 'Edit Account';
   openModal('accountModal');
@@ -343,18 +345,18 @@ window.deleteAccount = async id => {
 window.editTransaction = id => {
   const t = transactions.find(x => x.id===id); if (!t) return;
   currentTxnType = t.is_transfer ? 'transfer' : t.type;
-  $('txnId').value      = t.id;
-  $('txnAmount').value  = t.amount;
-  $('txnDate').value    = t.date;
+  $('txnId').value = t.id;
+  $('txnAmount').value = t.amount;
+  $('txnDate').value = t.date;
   $('txnRemarks').value = t.remarks || '';
   document.querySelectorAll('#txnTypeTabs .type-tab').forEach(b => b.classList.toggle('active', b.dataset.type===currentTxnType));
   $('txnTransferToField').style.display = currentTxnType==='transfer' ? '' : 'none';
-  $('txnCategoryField').style.display   = currentTxnType==='transfer' ? 'none' : '';
+  $('txnCategoryField').style.display = currentTxnType==='transfer' ? 'none' : '';
   accSelect('txnAccount'); accSelect('txnTransferTo', 'Transfer to…');
   catSelect('txnCategory', currentTxnType==='transfer' ? 'expense' : currentTxnType);
-  $('txnAccount').value    = t.account_id || '';
+  $('txnAccount').value = t.account_id || '';
   $('txnTransferTo').value = t.transfer_to_account_id || '';
-  $('txnCategory').value   = t.category_id || '';
+  $('txnCategory').value = t.category_id || '';
   $('txnModalTitle').textContent = 'Edit Transaction';
   openModal('txnModal');
 };
@@ -367,8 +369,8 @@ window.deleteTransaction = async id => {
 window.openPayback = id => {
   $('paybackReimburseId').value = id;
   $('paybackAmount').value = '';
-  $('paybackDate').value   = today();
-  $('paybackRemarks').value= '';
+  $('paybackDate').value = today();
+  $('paybackRemarks').value = '';
   accSelect('paybackAccount', 'Received into…');
   openModal('paybackModal');
 };
@@ -383,10 +385,9 @@ window.deleteCat = async id => {
   await loadAll(); render(); toast('🗑️ Deleted');
 };
 
-// ─── CSV Import ───────────────────────────────────────────────────────────────
 function expectedFields(k) {
   if (k==='transactions') return ['date','amount','type','category','account','note'];
-  if (k==='transfers')    return ['date','amount','from_account','to_account','note'];
+  if (k==='transfers') return ['date','amount','from_account','to_account','note'];
   return ['date','original_amount','reimbursed','pending','status','category','paid_from_account','refund_to_account','note','Person_name'];
 }
 
@@ -418,7 +419,7 @@ function buildMappingGrid() {
 function autoMap() {
   document.querySelectorAll('.import-map').forEach(sel => {
     const tgt = sel.dataset.target.toLowerCase();
-    const m   = importHeaders.find(h => h.trim().toLowerCase()===tgt) || importHeaders.find(h => h.trim().toLowerCase().includes(tgt));
+    const m = importHeaders.find(h => h.trim().toLowerCase()===tgt) || importHeaders.find(h => h.trim().toLowerCase().includes(tgt));
     if (m) sel.value = m;
   });
 }
@@ -437,17 +438,17 @@ function getMapping() {
 
 async function doPreview() {
   const file = $('importFile')?.files[0]; if (!file) return toast('Choose a CSV file');
-  const raw   = $('importDelimiter').value;
+  const raw = $('importDelimiter').value;
   const delim = raw === '\\t' ? '\t' : raw;
   const skipS = Number($('importSkipStart')?.value||0);
   const skipE = Number($('importSkipEnd')?.value||0);
-  const hasH  = $('importHasHeader')?.checked ?? true;
-  const text  = await file.text();
-  let rows    = parseCsv(text, delim).slice(skipS);
+  const hasH = $('importHasHeader')?.checked ?? true;
+  const text = await file.text();
+  let rows = parseCsv(text, delim).slice(skipS);
   if (skipE > 0) rows = rows.slice(0, Math.max(0, rows.length - skipE));
   if (!rows.length) { $('importPreview').textContent = 'No rows found.'; return; }
   importHeaders = (hasH ? rows[0] : rows[0].map((_,i) => `Column ${i+1}`)).map(h => String(h).trim());
-  importRows    = hasH ? rows.slice(1) : rows;
+  importRows = hasH ? rows.slice(1) : rows;
   $('importPreview').innerHTML = previewTable(importRows);
   buildMappingGrid();
   toast(`Preview: ${importRows.length} rows`);
@@ -455,14 +456,14 @@ async function doPreview() {
 
 async function runImport() {
   if (!importRows.length) return toast('Preview CSV first');
-  const mp        = getMapping();
-  const merge     = $('importMergeExisting')?.checked ?? true;
-  const clearBef  = $('importClearBefore')?.checked ?? false;
-  const flip      = $('importFlipAmount')?.checked ?? false;
-  const useType   = $('importUseTypeColumn')?.checked ?? true;
+  const mp = getMapping();
+  const merge = $('importMergeExisting')?.checked ?? true;
+  const clearBef = $('importClearBefore')?.checked ?? false;
+  const flip = $('importFlipAmount')?.checked ?? false;
+  const useType = $('importUseTypeColumn')?.checked ?? true;
   if (clearBef && currentImportKind !== 'reimburse') await supabase.from('transactions').delete().eq('user_id', USER.id);
   if (clearBef && currentImportKind === 'reimburse') await supabase.from('reimbursements').delete().eq('user_id', USER.id);
-  const existing  = new Set(transactions.map(dedupeKey));
+  const existing = new Set(transactions.map(dedupeKey));
   let inserted=0, skipped=0;
 
   if (currentImportKind === 'transactions') {
@@ -498,19 +499,19 @@ async function runImport() {
 
   if (currentImportKind === 'reimburse') {
     for (const row of importRows) {
-      const obj    = Object.fromEntries(importHeaders.map((h,i) => [h, row[i]??'']));
+      const obj = Object.fromEntries(importHeaders.map((h,i) => [h, row[i]??'']));
       const person = (obj[mp.Person_name]||obj[mp.person_name]||'').trim();
-      const total  = Number(obj[mp.original_amount]||0);
-      const paid   = Number(obj[mp.reimbursed]||0);
+      const total = Number(obj[mp.original_amount]||0);
+      const paid = Number(obj[mp.reimbursed]||0);
       if (!person || !total) { skipped++; continue; }
       const pending = Number(obj[mp.pending] || Math.max(0, total-paid));
-      const status  = pending<=0 ? 'settled' : paid>0 ? 'partial' : 'pending';
+      const status = pending<=0 ? 'settled' : paid>0 ? 'partial' : 'pending';
       const {data:rb, error} = await supabase.from('reimbursements').insert({user_id:USER.id,person_name:person,total_amount:total,paid_back:paid,status}).select().single();
       if (error) { skipped++; continue; }
       inserted++;
       const accFrom = findAccount(obj[mp.paid_from_account]);
-      const accTo   = findAccount(obj[mp.refund_to_account]);
-      const note    = obj[mp.note]||'';
+      const accTo = findAccount(obj[mp.refund_to_account]);
+      const note = obj[mp.note]||'';
       if (accFrom) await supabase.from('transactions').insert({user_id:USER.id,account_id:accFrom.id,amount:total,type:'expense',date:parseDate(obj[mp.date]),remarks:note||`Reimburse: ${person}`,is_transfer:false,reimburse_id:rb.id});
       if (paid>0 && accTo) await supabase.from('transactions').insert({user_id:USER.id,account_id:accTo.id,amount:paid,type:'income',date:parseDate(obj[mp.date]),remarks:`Payback from ${person}`,is_transfer:false});
     }
@@ -520,9 +521,7 @@ async function runImport() {
   toast(`✅ Imported ${inserted}, skipped ${skipped}`);
 }
 
-// ─── Bootstrap ────────────────────────────────────────────────────────────────
 (async () => {
-  // Theme
   const saved = localStorage.getItem('flowledger-theme') || 'light';
   document.documentElement.setAttribute('data-theme', saved);
   $('themeBtn').onclick = () => {
@@ -531,21 +530,16 @@ async function runImport() {
     localStorage.setItem('flowledger-theme', next);
   };
 
-  // Sidebar
-  $('menuBtn').onclick          = () => document.body.classList.toggle('sidebar-open');
-  $('sidebarOverlay').onclick   = () => document.body.classList.remove('sidebar-open');
+  $('menuBtn').onclick = () => document.body.classList.toggle('sidebar-open');
+  $('sidebarOverlay').onclick = () => document.body.classList.remove('sidebar-open');
 
-  // Close modals
   document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => closeModal(b.dataset.close));
   document.querySelectorAll('.modal-backdrop').forEach(m => m.onclick = e => { if (e.target===m) closeModal(m.id); });
 
-  // Route
   window.addEventListener('hashchange', render);
 
-  // Logout
   $('logoutBtn').onclick = async () => { await supabase.auth.signOut(); location.href='./login.html'; };
 
-  // Save profile
   $('saveProfileBtn').onclick = async () => {
     const name = $('settingName').value.trim(), currency = $('settingCurrency').value;
     if (!name) return toast('Enter a name');
@@ -554,21 +548,19 @@ async function runImport() {
     profile = {...profile, name, currency}; renderProfile(); toast('✅ Profile saved');
   };
 
-  // Accounts
   $('addAccountBtn').onclick = () => {
-    $('accountId').value=''; $('accountIcon').value='💳'; $('accountName').value=''; $('accountType').value='bank'; $('accountBalance').value='0';
+    $('accountId').value=''; $('accountIcon').value=''; $('accountName').value=''; $('accountType').value='bank'; $('accountBalance').value='0';
     $('accountModalTitle').textContent='New Account'; openModal('accountModal');
   };
   $('saveAccountBtn').onclick = async () => {
-    const id    = $('accountId').value;
-    const row   = { user_id:USER.id, emoji:$('accountIcon').value.trim()||'💳', name:$('accountName').value.trim(), type:$('accountType').value, opening_balance:parseFloat($('accountBalance').value)||0 };
+    const id = $('accountId').value;
+    const row = { user_id:USER.id, emoji:$('accountIcon').value.trim()||'', name:$('accountName').value.trim(), type:$('accountType').value, opening_balance:parseFloat($('accountBalance').value)||0 };
     if (!row.name) return toast('Enter account name');
     const q = id ? supabase.from('accounts').update(row).eq('id',id) : supabase.from('accounts').insert(row);
     const { error } = await q; if (error) return toast('❌ '+error.message);
     closeModal('accountModal'); await loadAll(); render(); toast(id ? '✅ Updated' : '✅ Account added');
   };
 
-  // Transactions
   function openTxnModal() {
     $('txnId').value=''; $('txnAmount').value=''; $('txnRemarks').value=''; $('txnDate').value=today(); currentTxnType='expense';
     document.querySelectorAll('#txnTypeTabs .type-tab').forEach(b => b.classList.toggle('active', b.dataset.type==='expense'));
@@ -576,130 +568,131 @@ async function runImport() {
     accSelect('txnAccount'); accSelect('txnTransferTo','Transfer to…'); catSelect('txnCategory','expense');
     $('txnModalTitle').textContent='Add Transaction'; openModal('txnModal');
   }
-  $('addTxnBtn').onclick = openTxnModal; $('quickAddBtn').onclick = openTxnModal; $('fabBtn').onclick = openTxnModal;
+
+  $('addTxnBtn').onclick = openTxnModal;
+  $('quickAddBtn').onclick = openTxnModal;
+  $('fabBtn').onclick = openTxnModal;
 
   document.querySelectorAll('#txnTypeTabs .type-tab').forEach(btn => btn.onclick = () => {
     document.querySelectorAll('#txnTypeTabs .type-tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active'); currentTxnType = btn.dataset.type;
     $('txnTransferToField').style.display = currentTxnType==='transfer' ? '' : 'none';
-    $('txnCategoryField').style.display   = currentTxnType==='transfer' ? 'none' : '';
+    $('txnCategoryField').style.display = currentTxnType==='transfer' ? 'none' : '';
     if (currentTxnType !== 'transfer') catSelect('txnCategory', currentTxnType);
   });
 
-  $('saveTxnBtn').onclick = async () => {
-    const id          = $('txnId').value;
-    const amount      = parseFloat($('txnAmount').value);
-    const account_id  = $('txnAccount').value;
-    const date        = $('txnDate').value;
-    const remarks     = $('txnRemarks').value.trim();
-    const category_id = $('txnCategory').value || null;
-    const transfer_to = $('txnTransferTo').value || null;
-    if (!amount || amount<=0) return toast('Enter valid amount');
-    if (!account_id)          return toast('Select account');
-    if (!date)                return toast('Pick a date');
-    if (currentTxnType==='transfer' && !transfer_to) return toast('Select destination account');
-    if (currentTxnType==='transfer' && transfer_to===account_id) return toast('Source and destination cannot match');
-    const row = { user_id:USER.id, account_id, category_id:currentTxnType==='transfer'?null:category_id, amount, date, remarks, type:currentTxnType, is_transfer:currentTxnType==='transfer', transfer_to_account_id:currentTxnType==='transfer'?transfer_to:null };
-    const q = id ? supabase.from('transactions').update(row).eq('id',id) : supabase.from('transactions').insert(row);
-    const { error } = await q; if (error) return toast('❌ '+error.message);
-    closeModal('txnModal'); await loadAll(); render(); toast(id ? '✅ Updated' : '✅ Saved');
-  };
+    $('saveTxnBtn').onclick = async () => {
+      const id = $('txnId').value;
+      const amount = parseFloat($('txnAmount').value);
+      const account_id = $('txnAccount').value;
+      const date = $('txnDate').value;
+      const remarks = $('txnRemarks').value.trim();
+      const category_id = $('txnCategory').value || null;
+      const transfer_to = $('txnTransferTo').value || null;
+      if (!amount || amount<=0) return toast('Enter valid amount');
+      if (!account_id) return toast('Select account');
+      if (!date) return toast('Pick a date');
+      if (currentTxnType==='transfer' && !transfer_to) return toast('Select destination account');
+      if (currentTxnType==='transfer' && transfer_to===account_id) return toast('Source and destination cannot match');
+      const row = { user_id:USER.id, account_id, category_id:currentTxnType==='transfer'?null:category_id, amount, date, remarks, type:currentTxnType, is_transfer:currentTxnType==='transfer', transfer_to_account_id:currentTxnType==='transfer'?transfer_to:null };
+      const q = id ? supabase.from('transactions').update(row).eq('id',id) : supabase.from('transactions').insert(row);
+      const { error } = await q; if (error) return toast('❌ '+error.message);
+      closeModal('txnModal'); await loadAll(); render(); toast(id ? '✅ Updated' : '✅ Saved');
+    };
 
-  ['txnFilterType','txnFilterAccount','txnFilterMonth'].forEach(id => $(id)?.addEventListener('change', renderTransactions));
+    ['txnFilterType','txnFilterAccount','txnFilterMonth'].forEach(id => $(id)?.addEventListener('change', renderTransactions));
 
-  // Reimburse
-  $('addReimburseBtn').onclick = () => {
-    $('reimbPersonName').value=''; $('reimbAmount').value=''; $('reimbRemarks').value=''; $('reimbDate').value=today();
-    accSelect('reimbAccount'); openModal('reimburseModal');
-  };
-  $('saveReimburseBtn').onclick = async () => {
-    const person_name  = $('reimbPersonName').value.trim();
-    const total_amount = parseFloat($('reimbAmount').value);
-    const account_id   = $('reimbAccount').value;
-    const date         = $('reimbDate').value;
-    const remarks      = $('reimbRemarks').value.trim();
-    if (!person_name || !total_amount || !account_id) return toast('Fill all fields');
-    const {data:rb, error} = await supabase.from('reimbursements').insert({user_id:USER.id,person_name,total_amount,paid_back:0,status:'pending'}).select().single();
-    if (error) return toast('❌ '+error.message);
-    await supabase.from('transactions').insert({user_id:USER.id,account_id,amount:total_amount,type:'expense',date,remarks:remarks||`Reimburse: ${person_name}`,is_transfer:false,reimburse_id:rb.id});
-    closeModal('reimburseModal'); await loadAll(); render(); toast('✅ Added');
-  };
-  $('savePaybackBtn').onclick = async () => {
-    const id         = $('paybackReimburseId').value;
-    const amount     = parseFloat($('paybackAmount').value);
-    const account_id = $('paybackAccount').value;
-    const date       = $('paybackDate').value;
-    const remarks    = $('paybackRemarks').value.trim();
-    if (!amount || !account_id) return toast('Fill all fields');
-    const rb      = reimbursements.find(r => r.id===id);
-    const newPaid = Number(rb.paid_back||0) + amount;
-    const status  = newPaid >= Number(rb.total_amount) ? 'settled' : 'partial';
-    await supabase.from('reimbursements').update({paid_back:newPaid,status}).eq('id',id);
-    await supabase.from('transactions').insert({user_id:USER.id,account_id,amount,type:'income',date,remarks:remarks||`Payback from ${rb.person_name}`,is_transfer:false});
-    closeModal('paybackModal'); await loadAll(); render(); toast('✅ Payback recorded');
-  };
+    $('addReimburseBtn').onclick = () => {
+      $('reimbPersonName').value=''; $('reimbAmount').value=''; $('reimbRemarks').value=''; $('reimbDate').value=today();
+      accSelect('reimbAccount'); openModal('reimburseModal');
+    };
+    $('saveReimburseBtn').onclick = async () => {
+      const person_name = $('reimbPersonName').value.trim();
+      const total_amount = parseFloat($('reimbAmount').value);
+      const account_id = $('reimbAccount').value;
+      const date = $('reimbDate').value;
+      const remarks = $('reimbRemarks').value.trim();
+      if (!person_name || !total_amount || !account_id) return toast('Fill all fields');
+      const {data:rb, error} = await supabase.from('reimbursements').insert({user_id:USER.id,person_name,total_amount,paid_back:0,status:'pending'}).select().single();
+      if (error) return toast('❌ '+error.message);
+      await supabase.from('transactions').insert({user_id:USER.id,account_id,amount:total_amount,type:'expense',date,remarks:remarks||`Reimburse: ${person_name}`,is_transfer:false,reimburse_id:rb.id});
+      closeModal('reimburseModal'); await loadAll(); render(); toast('✅ Added');
+    };
 
-  // Categories
-  $('addCategoryBtn').onclick = () => {
-    $('catIcon').value='📂'; $('catName').value=''; currentCatType='expense';
-    document.querySelectorAll('[data-ctype]').forEach(b => b.classList.toggle('active', b.dataset.ctype==='expense'));
-    openModal('categoryModal');
-  };
-  document.querySelectorAll('[data-ctype]').forEach(btn => btn.onclick = () => {
-    document.querySelectorAll('[data-ctype]').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active'); currentCatType = btn.dataset.ctype;
-  });
-  $('saveCategoryBtn').onclick = async () => {
-    const name = $('catName').value.trim(); if (!name) return toast('Enter category name');
-    const {error} = await supabase.from('categories').insert({user_id:USER.id,name,emoji:$('catIcon').value.trim()||'📂',type:currentCatType,color:'#01696f',is_default:false});
-    if (error) return toast('❌ '+error.message);
-    closeModal('categoryModal'); await loadAll(); render(); toast('✅ Category added');
-  };
+    $('savePaybackBtn').onclick = async () => {
+      const id = $('paybackReimburseId').value;
+      const amount = parseFloat($('paybackAmount').value);
+      const account_id = $('paybackAccount').value;
+      const date = $('paybackDate').value;
+      const remarks = $('paybackRemarks').value.trim();
+      if (!amount || !account_id) return toast('Fill all fields');
+      const rb = reimbursements.find(r => r.id===id);
+      const newPaid = Number(rb.paid_back||0) + amount;
+      const status = newPaid >= Number(rb.total_amount) ? 'settled' : 'partial';
+      await supabase.from('reimbursements').update({paid_back:newPaid,status}).eq('id',id);
+      await supabase.from('transactions').insert({user_id:USER.id,account_id,amount,type:'income',date,remarks:remarks||`Payback from ${rb.person_name}`,is_transfer:false});
+      closeModal('paybackModal'); await loadAll(); render(); toast('✅ Payback recorded');
+    };
 
-  // Ledger stub
-  $('addLedgerPersonBtn').onclick = () => toast('Ledger coming soon');
-
-  // Recurring stub
-  $('addRecurringBtn').onclick = () => toast('Recurring coming soon');
-
-  // Export CSV
-  $('exportCsvBtn').onclick = () => {
-    const header = 'Date,Type,Amount,Category,Account,Remarks';
-    const rows = transactions.map(t => {
-      const cat = categories.find(c=>c.id===t.category_id), acc = accounts.find(a=>a.id===t.account_id);
-      return [t.date, t.type, t.amount, cat?.name||'', acc?.name||'', JSON.stringify(t.remarks||'')].join(',');
+    $('addCategoryBtn').onclick = () => {
+      $('catIcon').value=''; $('catName').value=''; currentCatType='expense';
+      document.querySelectorAll('[data-ctype]').forEach(b => b.classList.toggle('active', b.dataset.ctype==='expense'));
+      openModal('categoryModal');
+    };
+    document.querySelectorAll('[data-ctype]').forEach(btn => btn.onclick = () => {
+      document.querySelectorAll('[data-ctype]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active'); currentCatType = btn.dataset.ctype;
     });
-    const csv = [header, ...rows].join('\n');
-    const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download = `flowledger_${today()}.csv`; a.click();
-    toast('✅ Exported');
-  };
+    $('saveCategoryBtn').onclick = async () => {
+      const name = $('catName').value.trim(); if (!name) return toast('Enter category name');
+      const {error} = await supabase.from('categories').insert({user_id:USER.id,name,emoji:$('catIcon').value.trim()||'',type:currentCatType,color:'#01696f',is_default:false});
+      if (error) return toast('❌ '+error.message);
+      closeModal('categoryModal'); await loadAll(); render(); toast('✅ Category added');
+    };
 
-  // Import
-  document.querySelectorAll('[data-import-kind]').forEach(b => b.onclick = () => {
-    document.querySelectorAll('[data-import-kind]').forEach(x => x.classList.remove('active'));
-    b.classList.add('active'); currentImportKind = b.dataset.importKind; buildMappingGrid();
-  });
-  $('openTxnImportBtn').onclick = () => {
-    currentImportKind='transactions'; importRows=[]; importHeaders=[]; $('importPreview').textContent='Upload a CSV to preview rows.'; $('mappingGrid').innerHTML='';
-    document.querySelectorAll('[data-import-kind]').forEach(b => b.classList.toggle('active', b.dataset.importKind==='transactions'));
-    openModal('importModal');
-  };
-  $('openReimburseImportBtn').onclick = () => {
-    currentImportKind='reimburse'; importRows=[]; importHeaders=[]; $('importPreview').textContent='Upload a CSV to preview rows.'; $('mappingGrid').innerHTML='';
-    document.querySelectorAll('[data-import-kind]').forEach(b => b.classList.toggle('active', b.dataset.importKind==='reimburse'));
-    openModal('importModal');
-  };
-  $('importFile').addEventListener('change', doPreview);
-  $('previewImportBtn').onclick = doPreview;
-  $('runImportBtn').onclick     = runImport;
+    $('addLedgerPersonBtn').onclick = () => toast('Ledger coming soon');
+    $('addRecurringBtn').onclick = () => toast('Recurring coming soon');
 
-  // Icon picker tab + search
-  document.querySelectorAll('[data-icon-group]').forEach(b => b.onclick = () => {
-    document.querySelectorAll('[data-icon-group]').forEach(x => x.classList.remove('active'));
-    b.classList.add('active'); renderIconGrid();
-  });
-  $('iconSearch').addEventListener('input', renderIconGrid);
+    $('exportCsvBtn').onclick = () => {
+      const header = 'Date,Type,Amount,Category,Account,Remarks';
+      const rows = transactions.map(t => {
+        const cat = categories.find(c=>c.id===t.category_id), acc = accounts.find(a=>a.id===t.account_id);
+        return [t.date, t.type, t.amount, cat?.name||'', acc?.name||'', JSON.stringify(t.remarks||'')].join(',');
+      });
+      const csv = [header, ...rows].join('\n');
+      const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download = `flowledger_${today()}.csv`; a.click();
+      toast('✅ Exported');
+    };
 
-  // Init
-  await loadAll(); renderProfile(); accSelect('txnAccount'); accSelect('txnTransferTo'); catSelect('txnCategory','expense'); render();
+    document.querySelectorAll('[data-import-kind]').forEach(b => b.onclick = () => {
+      document.querySelectorAll('[data-import-kind]').forEach(x => x.classList.remove('active'));
+      b.classList.add('active'); currentImportKind = b.dataset.importKind; buildMappingGrid();
+    });
+
+    $('openTxnImportBtn').onclick = () => {
+      currentImportKind='transactions'; importRows=[]; importHeaders=[]; $('importPreview').textContent='Upload a CSV to preview rows.'; $('mappingGrid').innerHTML='';
+      document.querySelectorAll('[data-import-kind]').forEach(b => b.classList.toggle('active', b.dataset.importKind==='transactions'));
+      openModal('importModal');
+    };
+    $('openReimburseImportBtn').onclick = () => {
+      currentImportKind='reimburse'; importRows=[]; importHeaders=[]; $('importPreview').textContent='Upload a CSV to preview rows.'; $('mappingGrid').innerHTML='';
+      document.querySelectorAll('[data-import-kind]').forEach(b => b.classList.toggle('active', b.dataset.importKind==='reimburse'));
+      openModal('importModal');
+    };
+    $('importFile').addEventListener('change', doPreview);
+    $('previewImportBtn').onclick = doPreview;
+    $('runImportBtn').onclick = runImport;
+
+    document.querySelectorAll('[data-icon-group]').forEach(b => b.onclick = () => {
+      document.querySelectorAll('[data-icon-group]').forEach(x => x.classList.remove('active'));
+      b.classList.add('active'); renderIconGrid();
+    });
+    $('iconSearch').addEventListener('input', renderIconGrid);
+
+    await loadAll();
+    renderProfile();
+    accSelect('txnAccount');
+    accSelect('txnTransferTo');
+    catSelect('txnCategory','expense');
+    render();
 })();
