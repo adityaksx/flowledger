@@ -12,25 +12,13 @@
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 <div class="app-shell">
-  <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+  <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <div class="brand-mark" aria-hidden="true">📒</div>
-      <div class="brand-copy">
-        <span class="brand-title">FlowLedger</span>
-        <span class="brand-sub">Money manager</span>
-      </div>
+      <div class="brand-mark">📒</div>
+      <div class="brand-copy"><span class="brand-title">FlowLedger</span><span class="brand-sub">Money manager</span></div>
     </div>
-    <div class="profile-card">
-      <div class="profile-row">
-        <div class="avatar" id="userAvatar">A</div>
-        <div class="profile-meta">
-          <p class="profile-name" id="userName">Loading…</p>
-          <p class="profile-email" id="userEmail"></p>
-        </div>
-      </div>
-      <span class="status-badge">🟢 Supabase connected</span>
-    </div>
-    <nav class="nav" aria-label="App sections">
+    <div class="profile-card"><div class="profile-row"><div class="avatar" id="userAvatar">A</div><div class="profile-meta"><p class="profile-name" id="userName">Loading…</p><p class="profile-email" id="userEmail"></p></div></div><span class="status-badge">🟢 Supabase connected</span></div>
+    <nav class="nav">
       <span class="nav-group-label">Workspace</span>
       <a class="nav-link" href="#dashboard" data-route="dashboard"><span class="nav-icon">🏠</span>Dashboard</a>
       <a class="nav-link" href="#accounts" data-route="accounts"><span class="nav-icon">💳</span>Accounts</a>
@@ -42,125 +30,33 @@
       <span class="nav-group-label" style="margin-top:.5rem">Account</span>
       <a class="nav-link" href="#settings" data-route="settings"><span class="nav-icon">⚙️</span>Settings</a>
     </nav>
-    <div class="sidebar-footer">
-      <button class="btn-primary" type="button" id="quickAddBtn">＋ Add entry</button>
-      <button class="btn-ghost" type="button" id="logoutBtn">Log out</button>
-    </div>
+    <div class="sidebar-footer"><button class="btn-primary" type="button" id="quickAddBtn">＋ Add entry</button><button class="btn-ghost" type="button" id="logoutBtn">Log out</button></div>
   </aside>
-
   <main class="main-shell">
-    <header class="topbar">
-      <div class="topbar-left">
-        <button class="icon-btn menu-btn" type="button" id="menuBtn" aria-label="Open menu">☰</button>
-        <div>
-          <h1 class="page-title" id="pageTitle">Dashboard</h1>
-          <p class="page-sub" id="pageSub">Your money overview at a glance.</p>
-        </div>
-      </div>
-      <div class="topbar-right">
-        <button class="icon-btn" type="button" id="themeBtn" aria-label="Toggle theme">◐</button>
-      </div>
-    </header>
-
+    <header class="topbar"><div class="topbar-left"><button class="icon-btn menu-btn" type="button" id="menuBtn">☰</button><div><h1 class="page-title" id="pageTitle">Dashboard</h1><p class="page-sub" id="pageSub">Your money overview at a glance.</p></div></div><div class="topbar-right"><button class="icon-btn theme-toggle" type="button" id="themeBtn" aria-label="Toggle theme">◐</button></div></header>
     <div class="content">
-      <section class="view" data-view="dashboard">
-        <div class="kpi-grid">
-          <article class="kpi-card"><span class="kpi-label">Net balance</span><strong class="kpi-value" id="kpiBalance">₹0</strong><span class="kpi-note" id="kpiAccounts">0 accounts</span></article>
-          <article class="kpi-card"><span class="kpi-label">Income this month</span><strong class="kpi-value green" id="kpiIncome">₹0</strong><span class="kpi-note">All sources</span></article>
-          <article class="kpi-card"><span class="kpi-label">Expense this month</span><strong class="kpi-value red" id="kpiExpense">₹0</strong><span class="kpi-note">All categories</span></article>
-          <article class="kpi-card"><span class="kpi-label">Reimburse due</span><strong class="kpi-value orange" id="kpiReimburse">₹0</strong><span class="kpi-note">Outstanding only</span></article>
-        </div>
-        <div class="two-col">
-          <article class="panel-card"><div class="card-head"><h2 class="card-title">Recent transactions</h2></div><div class="list" id="dashRecentList"><div class="empty-state">No transactions yet.</div></div></article>
-          <article class="panel-card"><div class="card-head"><h2 class="card-title">Accounts</h2></div><div class="list" id="dashAccountsList"><div class="empty-state">No accounts yet.</div></div></article>
-        </div>
-      </section>
-
-      <section class="view" data-view="accounts">
-        <div class="view-head"><div><h2 class="view-title">Accounts</h2><p class="view-sub">All wallets, bank accounts, cash, and cards.</p></div><button class="btn-primary" type="button" id="addAccountBtn">+ New account</button></div>
-        <div class="card-grid" id="accountsList"><div class="empty-state">No accounts yet.</div></div>
-      </section>
-
-      <section class="view" data-view="transactions">
-        <div class="view-head"><div><h2 class="view-title">Transactions</h2><p class="view-sub">Income, expense, and transfer history.</p></div><div class="row-actions"><button class="btn-ghost" type="button" id="openTxnImportBtn">Import CSV</button><button class="btn-primary" type="button" id="addTxnBtn">+ Add entry</button></div></div>
-        <div class="filter-row">
-          <select class="filter-select" id="txnFilterType"><option value="">All types</option><option value="income">Income</option><option value="expense">Expense</option><option value="transfer">Transfer</option></select>
-          <select class="filter-select" id="txnFilterAccount"><option value="">All accounts</option></select>
-          <input class="filter-input" type="month" id="txnFilterMonth" />
-        </div>
-        <article class="panel-card"><div class="list" id="txnList"><div class="empty-state">No transactions yet.</div></div></article>
-      </section>
-
-      <section class="view" data-view="reimburse">
-        <div class="view-head"><div><h2 class="view-title">Reimburse</h2><p class="view-sub">Track money you paid for others.</p></div><div class="row-actions"><button class="btn-ghost" type="button" id="openReimburseImportBtn">Import CSV</button><button class="btn-primary" type="button" id="addReimburseBtn">+ New reimburse</button></div></div>
-        <div class="list" id="reimburseList"><div class="empty-state">No reimbursements yet.</div></div>
-      </section>
-
+      <section class="view" data-view="dashboard"><div class="kpi-grid"><article class="kpi-card"><span class="kpi-label">Net balance</span><strong class="kpi-value" id="kpiBalance">₹0</strong><span class="kpi-note" id="kpiAccounts">0 accounts</span></article><article class="kpi-card"><span class="kpi-label">Income this month</span><strong class="kpi-value green" id="kpiIncome">₹0</strong><span class="kpi-note">All sources</span></article><article class="kpi-card"><span class="kpi-label">Expense this month</span><strong class="kpi-value red" id="kpiExpense">₹0</strong><span class="kpi-note">All categories</span></article><article class="kpi-card"><span class="kpi-label">Reimburse due</span><strong class="kpi-value orange" id="kpiReimburse">₹0</strong><span class="kpi-note">Outstanding only</span></article></div><div class="two-col"><article class="panel-card"><div class="card-head"><h2 class="card-title">Recent transactions</h2></div><div class="list" id="dashRecentList"><div class="empty-state">No transactions yet.</div></div></article><article class="panel-card"><div class="card-head"><h2 class="card-title">Accounts</h2></div><div class="list" id="dashAccountsList"><div class="empty-state">No accounts yet.</div></div></article></div></section>
+      <section class="view" data-view="accounts"><div class="view-head"><div><h2 class="view-title">Accounts</h2><p class="view-sub">All wallets, bank accounts, cash, and cards.</p></div><button class="btn-primary" type="button" id="addAccountBtn">+ New account</button></div><div class="card-grid" id="accountsList"><div class="empty-state">No accounts yet.</div></div></section>
+      <section class="view" data-view="transactions"><div class="view-head"><div><h2 class="view-title">Transactions</h2><p class="view-sub">Income, expense, and transfer history.</p></div><div class="row-actions"><button class="btn-ghost" type="button" id="openTxnImportBtn">Import CSV</button><button class="btn-primary" type="button" id="addTxnBtn">+ Add entry</button></div></div><div class="filter-row"><select class="filter-select" id="txnFilterType"><option value="">All types</option><option value="income">Income</option><option value="expense">Expense</option><option value="transfer">Transfer</option></select><select class="filter-select" id="txnFilterAccount"><option value="">All accounts</option></select><input class="filter-input" type="month" id="txnFilterMonth" /></div><article class="panel-card"><div class="list" id="txnList"><div class="empty-state">No transactions yet.</div></div></article></section>
+      <section class="view" data-view="reimburse"><div class="view-head"><div><h2 class="view-title">Reimburse</h2><p class="view-sub">Track money you paid for others.</p></div><div class="row-actions"><button class="btn-ghost" type="button" id="openReimburseImportBtn">Import CSV</button><button class="btn-primary" type="button" id="addReimburseBtn">+ New reimburse</button></div></div><div class="list" id="reimburseList"><div class="empty-state">No reimbursements yet.</div></div></section>
       <section class="view" data-view="ledger"><div class="view-head"><div><h2 class="view-title">Ledger</h2><p class="view-sub">Long-term lend and borrow tracking per person.</p></div><button class="btn-primary" type="button" id="addLedgerPersonBtn">+ Add person</button></div><div class="list" id="ledgerList"><div class="empty-state">No ledger entries yet.</div></div></section>
       <section class="view" data-view="recurring"><div class="view-head"><div><h2 class="view-title">Recurring</h2><p class="view-sub">Bills, subscriptions, salary, and reminders.</p></div><button class="btn-primary" type="button" id="addRecurringBtn">+ New rule</button></div><div class="card-grid" id="recurringList"><div class="empty-state">No recurring rules yet.</div></div></section>
       <section class="view" data-view="reports"><div class="view-head"><div><h2 class="view-title">Reports</h2><p class="view-sub">Monthly trends and category breakdown.</p></div><button class="btn-ghost" type="button" id="exportCsvBtn">Export CSV</button></div><div class="two-col"><article class="panel-card"><h2 class="card-title">This month</h2><div class="report-summary" id="reportSummary"><div class="report-row"><span>Income</span><strong class="green" id="repIncome">₹0</strong></div><div class="report-row"><span>Expense</span><strong class="red" id="repExpense">₹0</strong></div><div class="report-row"><span>Savings</span><strong id="repSavings">₹0</strong></div></div></article><article class="panel-card"><h2 class="card-title">By category (expense)</h2><div class="list" id="reportCatList"><div class="empty-state">No expense data this month.</div></div></article></div></section>
-      <section class="view" data-view="settings"><div class="view-head"><div><h2 class="view-title">Settings</h2><p class="view-sub">Profile, categories, and preferences.</p></div></div><div class="two-col"><article class="panel-card"><h2 class="card-title">Profile</h2><div class="fields"><div class="field"><label class="label" for="settingName">Display name</label><input class="input" type="text" id="settingName" /></div><div class="field"><label class="label" for="settingCurrency">Currency</label><select class="input" id="settingCurrency"><option value="INR">INR</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option></select></div><button class="btn-primary" type="button" id="saveProfileBtn">Save profile</button></div></article><article class="panel-card"><div class="card-head"><h2 class="card-title">Categories</h2><button class="btn-sm" type="button" id="addCategoryBtn">+ Add</button></div><div class="list" id="categoryList"><div class="empty-state">No categories yet.</div></div></article></div></section>
+      <section class="view" data-view="settings"><div class="view-head"><div><h2 class="view-title">Settings</h2><p class="view-sub">Profile, categories, and preferences.</p></div></div><div class="two-col"><article class="panel-card"><h2 class="card-title">Profile</h2><div class="fields"><div class="field"><label class="label">Display name</label><input class="input" type="text" id="settingName" /></div><div class="field"><label class="label">Currency</label><select class="input" id="settingCurrency"><option value="INR">INR</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option></select></div><button class="btn-primary" type="button" id="saveProfileBtn">Save profile</button></div></article><article class="panel-card"><div class="card-head"><h2 class="card-title">Categories</h2><button class="btn-sm" type="button" id="addCategoryBtn">+ Add</button></div><div class="list" id="categoryList"><div class="empty-state">No categories yet.</div></div></article></div></section>
     </div>
   </main>
 </div>
-
-<button class="fab" type="button" id="fabBtn" aria-label="Quick add">＋</button>
-<nav class="mobile-nav" aria-label="Mobile navigation">
-  <a class="mob-link" href="#dashboard" data-route="dashboard"><span>🏠</span><span>Home</span></a>
-  <a class="mob-link" href="#accounts" data-route="accounts"><span>💳</span><span>Accounts</span></a>
-  <a class="mob-link" href="#transactions" data-route="transactions"><span>📊</span><span>Entries</span></a>
-  <a class="mob-link" href="#reimburse" data-route="reimburse"><span>🔄</span><span>Reimburse</span></a>
-  <a class="mob-link" href="#reports" data-route="reports"><span>📈</span><span>Reports</span></a>
-</nav>
-
-<div class="modal-backdrop hidden" id="accountModal"><div class="modal"><div class="modal-head"><h3 class="modal-title" id="accountModalTitle">New Account</h3><button class="icon-btn" type="button" data-close="accountModal">✕</button></div><div class="fields"><input type="hidden" id="accountId" /><div class="field"><label class="label">Emoji</label><input class="input" type="text" id="accountEmoji" value="💳" maxlength="2" /></div><div class="field"><label class="label">Name</label><input class="input" type="text" id="accountName" /></div><div class="field"><label class="label">Type</label><select class="input" id="accountType"><option value="bank">Bank</option><option value="cash">Cash</option><option value="upi">UPI</option><option value="credit">Credit</option><option value="wallet">Wallet</option><option value="savings">Savings</option></select></div><div class="field"><label class="label">Opening balance</label><input class="input" type="number" id="accountBalance" value="0" /></div><button class="btn-primary" type="button" id="saveAccountBtn">Save account</button></div></div></div>
-
-<div class="modal-backdrop hidden" id="txnModal"><div class="modal"><div class="modal-head"><h3 class="modal-title" id="txnModalTitle">Add Transaction</h3><button class="icon-btn" type="button" data-close="txnModal">✕</button></div><div class="fields"><input type="hidden" id="txnId" /><div class="field"><label class="label">Type</label><div class="type-tabs" id="txnTypeTabs"><button class="type-tab active" data-type="expense" type="button">Expense</button><button class="type-tab" data-type="income" type="button">Income</button><button class="type-tab" data-type="transfer" type="button">Transfer</button></div></div><div class="field"><label class="label">Amount</label><input class="input" type="number" id="txnAmount" /></div><div class="field"><label class="label">Account</label><select class="input" id="txnAccount"></select></div><div class="field" id="txnTransferToField" style="display:none"><label class="label">Transfer to</label><select class="input" id="txnTransferTo"></select></div><div class="field" id="txnCategoryField"><label class="label">Category</label><select class="input" id="txnCategory"></select></div><div class="field"><label class="label">Date</label><input class="input" type="date" id="txnDate" /></div><div class="field"><label class="label">Remarks</label><input class="input" type="text" id="txnRemarks" /></div><button class="btn-primary" type="button" id="saveTxnBtn">Save transaction</button></div></div></div>
-
+<button class="fab" type="button" id="fabBtn">＋</button>
+<nav class="mobile-nav"><a class="mob-link" href="#dashboard" data-route="dashboard"><span>🏠</span><span>Home</span></a><a class="mob-link" href="#accounts" data-route="accounts"><span>💳</span><span>Accounts</span></a><a class="mob-link" href="#transactions" data-route="transactions"><span>📊</span><span>Entries</span></a><a class="mob-link" href="#reimburse" data-route="reimburse"><span>🔄</span><span>Reimburse</span></a><a class="mob-link" href="#reports" data-route="reports"><span>📈</span><span>Reports</span></a></nav>
+<div class="modal-backdrop hidden" id="accountModal"><div class="modal"><div class="modal-head"><h3 class="modal-title" id="accountModalTitle">New Account</h3><button class="icon-btn" type="button" data-close="accountModal">✕</button></div><div class="fields"><input type="hidden" id="accountId" /><div class="field"><label class="label">Icon</label><div class="icon-select-row"><input class="input" type="text" id="accountIcon" value="💳" maxlength="2" /><button class="btn-sm" type="button" onclick="openIconPicker('accountIcon')">Browse</button></div></div><div class="field"><label class="label">Name</label><input class="input" type="text" id="accountName" /></div><div class="field"><label class="label">Type</label><select class="input" id="accountType"><option value="bank">Bank</option><option value="cash">Cash</option><option value="upi">UPI</option><option value="credit">Credit</option><option value="wallet">Wallet</option><option value="savings">Savings</option></select></div><div class="field"><label class="label">Opening balance</label><input class="input" type="number" id="accountBalance" value="0" /></div><button class="btn-primary" type="button" id="saveAccountBtn">Save account</button></div></div></div>
+<div class="modal-backdrop hidden" id="txnModal"><div class="modal"><div class="modal-head"><h3 class="modal-title" id="txnModalTitle">Add Transaction</h3><button class="icon-btn" type="button" data-close="txnModal">✕</button></div><div class="fields"><input type="hidden" id="txnId" /><div class="field"><label class="label">Type</label><div class="type-tabs" id="txnTypeTabs"><button class="type-tab active" data-type="expense" type="button">Expense</button><button class="type-tab" data-type="income" type="button">Income</button><button class="type-tab" data-type="transfer" type="button">Transfer</button></div></div><div class="field"><label class="label">Amount</label><input class="input" type="number" id="txnAmount" /></div><div class="field"><label class="label">Account</label><select class="input" id="txnAccount"></select></div><div class="field" id="txnTransferToField" style="display:none"><label class="label">Transfer to</label><select class="input" id="txnTransferTo"></select></div><div class="field" id="txnCategoryField"><label class="label">Category</label><div class="icon-select-row"><select class="input" id="txnCategory"></select><button class="btn-sm" type="button" onclick="openIconPicker('txnCategory')">Browse icon</button></div></div><div class="field"><label class="label">Date</label><input class="input" type="date" id="txnDate" /></div><div class="field"><label class="label">Remarks</label><input class="input" type="text" id="txnRemarks" /></div><button class="btn-primary" type="button" id="saveTxnBtn">Save transaction</button></div></div></div>
 <div class="modal-backdrop hidden" id="reimburseModal"><div class="modal"><div class="modal-head"><h3 class="modal-title">New Reimbursement</h3><button class="icon-btn" type="button" data-close="reimburseModal">✕</button></div><div class="fields"><div class="field"><label class="label">Person name</label><input class="input" type="text" id="reimbPersonName" /></div><div class="field"><label class="label">Total amount</label><input class="input" type="number" id="reimbAmount" /></div><div class="field"><label class="label">Paid from account</label><select class="input" id="reimbAccount"></select></div><div class="field"><label class="label">Date</label><input class="input" type="date" id="reimbDate" /></div><div class="field"><label class="label">Remarks</label><input class="input" type="text" id="reimbRemarks" /></div><button class="btn-primary" type="button" id="saveReimburseBtn">Save</button></div></div></div>
-
 <div class="modal-backdrop hidden" id="paybackModal"><div class="modal"><div class="modal-head"><h3 class="modal-title">Record Payback</h3><button class="icon-btn" type="button" data-close="paybackModal">✕</button></div><div class="fields"><input type="hidden" id="paybackReimburseId" /><div class="field"><label class="label">Amount received</label><input class="input" type="number" id="paybackAmount" /></div><div class="field"><label class="label">Into account</label><select class="input" id="paybackAccount"></select></div><div class="field"><label class="label">Date</label><input class="input" type="date" id="paybackDate" /></div><div class="field"><label class="label">Remarks</label><input class="input" type="text" id="paybackRemarks" /></div><button class="btn-primary" type="button" id="savePaybackBtn">Save payback</button></div></div></div>
-
-<div class="modal-backdrop hidden" id="ledgerModal"><div class="modal"><div class="modal-head"><h3 class="modal-title">Add Ledger Person</h3><button class="icon-btn" type="button" data-close="ledgerModal">✕</button></div><div class="fields"><div class="field"><label class="label">Emoji</label><input class="input" type="text" id="ledgerEmoji" value="🧑" maxlength="2" /></div><div class="field"><label class="label">Person name</label><input class="input" type="text" id="ledgerPersonName" /></div><div class="field"><label class="label">Notes</label><input class="input" type="text" id="ledgerNotes" /></div><button class="btn-primary" type="button" id="saveLedgerPersonBtn">Save</button></div></div></div>
-
+<div class="modal-backdrop hidden" id="ledgerModal"><div class="modal"><div class="modal-head"><h3 class="modal-title">Add Ledger Person</h3><button class="icon-btn" type="button" data-close="ledgerModal">✕</button></div><div class="fields"><div class="field"><label class="label">Icon</label><div class="icon-select-row"><input class="input" type="text" id="ledgerIcon" value="🧑" maxlength="2" /><button class="btn-sm" type="button" onclick="openIconPicker('ledgerIcon')">Browse</button></div></div><div class="field"><label class="label">Person name</label><input class="input" type="text" id="ledgerPersonName" /></div><div class="field"><label class="label">Notes</label><input class="input" type="text" id="ledgerNotes" /></div><button class="btn-primary" type="button" id="saveLedgerPersonBtn">Save</button></div></div></div>
 <div class="modal-backdrop hidden" id="ledgerEntryModal"><div class="modal"><div class="modal-head"><h3 class="modal-title">Add Entry</h3><button class="icon-btn" type="button" data-close="ledgerEntryModal">✕</button></div><div class="fields"><input type="hidden" id="ledgerEntryPersonId" /><div class="field"><label class="label">Type</label><div class="type-tabs"><button class="type-tab active" data-ledger-type="lent" type="button">I lent</button><button class="type-tab" data-ledger-type="borrowed" type="button">I borrowed</button></div></div><div class="field"><label class="label">Amount</label><input class="input" type="number" id="ledgerEntryAmount" /></div><div class="field"><label class="label">Date</label><input class="input" type="date" id="ledgerEntryDate" /></div><div class="field"><label class="label">Remarks</label><input class="input" type="text" id="ledgerEntryRemarks" /></div><button class="btn-primary" type="button" id="saveLedgerEntryBtn">Save entry</button></div></div></div>
-
 <div class="modal-backdrop hidden" id="recurringModal"><div class="modal"><div class="modal-head"><h3 class="modal-title">New Recurring Rule</h3><button class="icon-btn" type="button" data-close="recurringModal">✕</button></div><div class="fields"><div class="field"><label class="label">Name / Remarks</label><input class="input" type="text" id="recurringRemarks" /></div><div class="field"><label class="label">Type</label><div class="type-tabs" id="recurringTypeTabs"><button class="type-tab active" data-rtype="expense" type="button">Expense</button><button class="type-tab" data-rtype="income" type="button">Income</button></div></div><div class="field"><label class="label">Amount</label><input class="input" type="number" id="recurringAmount" /></div><div class="field"><label class="label">Account</label><select class="input" id="recurringAccount"></select></div><div class="field"><label class="label">Category</label><select class="input" id="recurringCategory"></select></div><div class="field"><label class="label">Frequency</label><select class="input" id="recurringFrequency"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="yearly">Yearly</option></select></div><div class="field"><label class="label">Next due date</label><input class="input" type="date" id="recurringNextDue" /></div><button class="btn-primary" type="button" id="saveRecurringBtn">Save rule</button></div></div></div>
-
-<div class="modal-backdrop hidden" id="categoryModal"><div class="modal"><div class="modal-head"><h3 class="modal-title">New Category</h3><button class="icon-btn" type="button" data-close="categoryModal">✕</button></div><div class="fields"><div class="field"><label class="label">Emoji</label><input class="input" type="text" id="catEmoji" value="📂" maxlength="2" /></div><div class="field"><label class="label">Name</label><input class="input" type="text" id="catName" /></div><div class="field"><label class="label">Type</label><div class="type-tabs" id="catTypeTabs"><button class="type-tab active" data-ctype="expense" type="button">Expense</button><button class="type-tab" data-ctype="income" type="button">Income</button></div></div><button class="btn-primary" type="button" id="saveCategoryBtn">Save</button></div></div></div>
-
-<div class="modal-backdrop hidden" id="importModal">
-  <div class="modal modal-wide">
-    <div class="modal-head"><h3 class="modal-title">Import CSV</h3><button class="icon-btn" type="button" data-close="importModal">✕</button></div>
-    <div class="import-tabs">
-      <button class="type-tab active" data-import-kind="transactions" type="button">Transactions</button>
-      <button class="type-tab" data-import-kind="transfers" type="button">Transfers</button>
-      <button class="type-tab" data-import-kind="reimburse" type="button">Reimburse</button>
-    </div>
-    <div class="fields">
-      <div class="field"><label class="label">CSV file</label><input class="input" type="file" id="importFile" accept=".csv,text/csv" /></div>
-      <div class="import-options-grid">
-        <div class="field"><label class="label">Delimiter</label><select class="input" id="importDelimiter"><option value=",">Comma (,)</option><option value=";">Semicolon (;)</option><option value="\t">Tab</option><option value="|">Pipe (|)</option></select></div>
-        <div class="field"><label class="label">Date format</label><select class="input" id="importDateFormat"><option value="yyyy-mm-dd">YYYY-MM-DD</option><option value="dd/mm/yyyy">DD/MM/YYYY</option><option value="mm/dd/yyyy">MM/DD/YYYY</option></select></div>
-        <div class="field"><label class="label">Skip start lines</label><input class="input" type="number" id="importSkipStart" value="0" min="0" /></div>
-        <div class="field"><label class="label">Skip end lines</label><input class="input" type="number" id="importSkipEnd" value="0" min="0" /></div>
-      </div>
-      <div class="checks-grid">
-        <label class="check-row"><input type="checkbox" id="importHasHeader" checked /> File has header row</label>
-        <label class="check-row"><input type="checkbox" id="importClearBefore" /> Clear matching data before import</label>
-        <label class="check-row"><input type="checkbox" id="importMergeExisting" checked /> Merge / skip duplicates</label>
-        <label class="check-row"><input type="checkbox" id="importFlipAmount" /> Flip amount sign</label>
-        <label class="check-row"><input type="checkbox" id="importSplitAmount" /> Split inflow / outflow columns</label>
-        <label class="check-row"><input type="checkbox" id="importUseTypeColumn" checked /> Use separate type / direction column</label>
-      </div>
-      <div class="field"><label class="label">Preview</label><div class="import-preview" id="importPreview">Upload a CSV to preview rows.</div></div>
-      <div class="field"><label class="label">Column mapping</label><div class="mapping-grid" id="mappingGrid"></div></div>
-      <div class="row-actions"><button class="btn-ghost" type="button" id="previewImportBtn">Preview</button><button class="btn-primary" type="button" id="runImportBtn">Import</button></div>
-    </div>
-  </div>
-</div>
-
-<div class="toast hidden" id="toast" role="status" aria-live="polite"></div>
+<div class="modal-backdrop hidden" id="categoryModal"><div class="modal"><div class="modal-head"><h3 class="modal-title">New Category</h3><button class="icon-btn" type="button" data-close="categoryModal">✕</button></div><div class="fields"><div class="field"><label class="label">Icon</label><div class="icon-select-row"><input class="input" type="text" id="catIcon" value="📂" maxlength="2" /><button class="btn-sm" type="button" onclick="openIconPicker('catIcon')">Browse</button></div></div><div class="field"><label class="label">Name</label><input class="input" type="text" id="catName" /></div><div class="field"><label class="label">Type</label><div class="type-tabs" id="catTypeTabs"><button class="type-tab active" data-ctype="expense" type="button">Expense</button><button class="type-tab" data-ctype="income" type="button">Income</button></div></div><button class="btn-primary" type="button" id="saveCategoryBtn">Save</button></div></div></div>
+<div class="modal-backdrop hidden" id="iconPickerModal"><div class="modal modal-wide"><div class="modal-head"><h3 class="modal-title">Choose an icon</h3><button class="icon-btn" type="button" data-close="iconPickerModal">✕</button></div><div class="fields"><div class="field"><label class="label">Search icons</label><input class="input" type="text" id="iconSearch" placeholder="Search food, bank, salary..." /></div><div class="import-tabs" id="iconTabRow"><button class="type-tab active" data-icon-group="all" type="button">All</button><button class="type-tab" data-icon-group="income" type="button">Income</button><button class="type-tab" data-icon-group="expense" type="button">Expense</button><button class="type-tab" data-icon-group="accounts" type="button">Accounts</button></div><div class="icon-grid" id="iconGrid"></div></div></div></div>
 <script type="module" src="./js/supabase.js"></script>
 <script type="module" src="./js/app.js"></script>
 </body>
