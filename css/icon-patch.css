@@ -1,0 +1,8 @@
+
+.icon-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:12px;max-height:55vh;overflow:auto;padding-right:4px}
+.icon-chip{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:84px;border:1px solid var(--color-border);border-radius:16px;background:var(--color-surface-2);transition:transform var(--t),background var(--t),border-color var(--t)}
+.icon-chip:hover{transform:translateY(-2px);border-color:var(--color-primary);background:var(--color-primary-hl)}
+.icon-chip .ico{font-size:28px;line-height:1}
+.icon-chip .lbl{font-size:10px;line-height:1.2;text-align:center;color:var(--color-text-muted);word-break:break-word;padding:0 6px}
+.icon-preview{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:var(--color-surface-offset);font-size:18px}
+.theme-swap{background:var(--color-surface-offset)}
