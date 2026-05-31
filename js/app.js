@@ -14,7 +14,7 @@ const ICON_BASE = 'https://raw.githubusercontent.com/adityaksx/flowledger/d21033
 const ICONS = [
   { g: "accounts", k: "bank", img: "bank.png", l: "Bank" },
   { g: "accounts", k: "wallet", img: "wallet.png", l: "Wallet" },
-  { g: "accounts", k: "wallet", img: "wallet_1.png", l: "Wallet_1" },
+  { g: "accounts", k: "wallet", img: "wallet_1.png", l: "Wallet" },
   { g: "accounts", k: "card", img: "card.png", l: "Card" },
   { g: "accounts", k: "cash", img: "cash.png", l: "Cash" },
   { g: "accounts", k: "cash", img: "cash_1.png", l: "Cash" },
