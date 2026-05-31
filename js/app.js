@@ -9,7 +9,7 @@ let currentTxnType='expense', currentCatType='expense';
 let currentImportKind='transactions', importRows=[], importHeaders=[];
 let iconTargetInput=null;
 
-const ICON_BASE = 'https://raw.githubusercontent.com/adityaksx/flowledger/d210335131163837d61d482502dd1a1c8c292e20/assets/icons/';
+const ICON_BASE = 'https://raw.githubusercontent.com/adityaksx/flowledger/refs/heads/main/assets/icons/';
 
 const ICONS = [
   { g: "accounts", k: "bank", img: "bank.png", l: "Bank" },
