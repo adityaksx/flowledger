@@ -441,24 +441,66 @@ function expectedFields(k) {
   return ['date','original_amount','reimbursed','pending','status','category','paid_from_account','refund_to_account','note','Person_name'];
 }
 
+/**
+ * Robust CSV parser that handles:
+ * 1. Properly quoted cells (RFC 4180)
+ * 2. Unclosed quotes at end of line — force-closes the quote and ends the row
+ *    (fixes rows like:  2026-04-20,73,Income,Profit,Slice SFB,"profit from Aditya Birla psu )
+ * 3. Tabs or commas as delimiter
+ */
 function parseCsv(text, delim) {
-  const rows = []; let row=[], cell='', inQ=false;
-  for (let i=0; i<text.length; i++) {
-    const ch=text[i], nx=text[i+1];
-    if (ch==='"') { if (inQ && nx==='"') { cell+='"'; i++; } else inQ=!inQ; }
-    else if (ch===delim && !inQ) { row.push(cell); cell=''; }
-    else if ((ch==='\n' || ch==='\r') && !inQ) {
-      // newline inside quotes is replaced with a space to prevent row grouping
-      if (ch==='\r'&&nx==='\n') i++;
-      row.push(cell); rows.push(row); row=[]; cell='';
-    } else if ((ch==='\n' || ch==='\r') && inQ) {
-      // newline inside a quoted cell → replace with space, do NOT split the row
-      cell += ' ';
-      if (ch==='\r'&&nx==='\n') i++;
-    } else cell+=ch;
+  // Normalise line endings to \n
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+  const rows = [];
+
+  for (let li = 0; li < lines.length; li++) {
+    const line = lines[li];
+    if (line.trim() === '') continue;
+
+    const row = [];
+    let cell = '';
+    let inQ = false;
+    let i = 0;
+
+    while (i < line.length) {
+      const ch = line[i];
+      const nx = line[i + 1];
+
+      if (ch === '"') {
+        if (inQ && nx === '"') {
+          // Escaped quote inside quoted cell
+          cell += '"';
+          i += 2;
+        } else if (inQ) {
+          // Closing quote
+          inQ = false;
+          i++;
+        } else {
+          // Opening quote
+          inQ = true;
+          i++;
+        }
+      } else if (ch === delim && !inQ) {
+        row.push(cell.trim());
+        cell = '';
+        i++;
+      } else {
+        cell += ch;
+        i++;
+      }
+    }
+
+    // End of line:
+    // If still inQ here, the quote was never closed (malformed CSV like "profit from psu )
+    // Force-close: treat whatever we accumulated as the cell value, trim it.
+    row.push(cell.trim());
+    // Reset inQ regardless — never carry quote state across lines
+    inQ = false;
+
+    if (row.some(v => v !== '')) rows.push(row);
   }
-  if (row.length || cell) { row.push(cell); rows.push(row); }
-  return rows.filter(r => r.some(v => String(v).trim() !== ''));
+
+  return rows;
 }
 
 function buildMappingGrid() {
@@ -483,7 +525,6 @@ function autoMap() {
 
 function previewTable(rows) {
   const head = importHeaders;
-  // Show ALL rows (no artificial slice), just cap at 500 for DOM performance
   const body = rows.slice(0, 500).map(r => `<tr>${head.map((_,i) => `<td>${String(r[i]||'').replace(/</g,'&lt;')}</td>`).join('')}</tr>`).join('');
   return `<table class="mini-preview-table"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
 }
@@ -523,7 +564,7 @@ async function runImport() {
   if (clearBef && currentImportKind === 'reimburse') await supabase.from('reimbursements').delete().eq('user_id', USER.id);
   const existing = new Set(transactions.map(dedupeKey));
   let inserted=0, skippedDupe=0, skippedNoAmount=0;
-  const skippedAccNames = [];  // collect names of unregistered accounts
+  const skippedAccNames = [];
 
   if (currentImportKind === 'transactions') {
     const payload = [];
@@ -581,7 +622,6 @@ async function runImport() {
 
   await loadAll(); render(); closeModal('importModal');
   toast(`✅ Imported ${inserted}${skippedAccNames.length||skippedDupe||skippedNoAmount ? `, skipped ${skippedAccNames.length+skippedDupe+skippedNoAmount}` : ''}`);
-  // Show detailed popup if anything was skipped
   if (skippedAccNames.length || skippedDupe || skippedNoAmount) {
     showSkippedPopup(skippedAccNames, skippedDupe, skippedNoAmount);
   }
