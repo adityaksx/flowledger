@@ -85,10 +85,29 @@
         <article class="panel-card"><div class="list" id="txnList"><div class="empty-state">No transactions yet.</div></div></article>
       </section>
 
-      <!-- Reimburse -->
+      <!-- ══ Reimburse ══ -->
       <section class="view" data-view="reimburse">
-        <div class="view-head"><div><h2 class="view-title">Reimburse</h2><p class="view-sub">Track money you paid for others.</p></div><div class="row-actions"><button class="btn-ghost" type="button" id="openReimburseImportBtn">Import CSV</button><button class="btn-primary" type="button" id="addReimburseBtn">+ New reimburse</button></div></div>
-        <div class="reimb-timeline" id="reimburseList"><div class="empty-state">No reimbursements yet.</div></div>
+        <div class="view-head">
+          <div><h2 class="view-title">Reimburse</h2><p class="view-sub">Track money you paid for others.</p></div>
+          <div class="row-actions">
+            <button class="btn-ghost" type="button" id="openReimburseImportBtn">Import CSV</button>
+            <button class="btn-primary" type="button" id="addReimburseBtn">+ New reimburse</button>
+          </div>
+        </div>
+
+        <!-- Sub-tabs -->
+        <div class="reimb-tabs">
+          <button class="reimb-tab-btn active" data-reimb-tab="pending" type="button">Reimburse</button>
+          <button class="reimb-tab-btn" data-reimb-tab="settled" type="button">Refunded</button>
+        </div>
+
+        <!-- Stats row -->
+        <div class="reimb-stats-row" id="reimbStatsRow"></div>
+
+        <!-- Timeline list -->
+        <div class="reimb-timeline" id="reimburseList">
+          <div class="reimb-empty">No reimbursements yet.</div>
+        </div>
       </section>
 
       <!-- Ledger -->
@@ -131,8 +150,8 @@
 <!-- Transaction Modal -->
 <div class="modal-backdrop hidden" id="txnModal"><div class="modal"><div class="modal-head"><h3 class="modal-title" id="txnModalTitle">Add Transaction</h3><button class="icon-btn" type="button" data-close="txnModal">✕</button></div><div class="fields"><input type="hidden" id="txnId" /><div class="field"><label class="label">Type</label><div class="type-tabs" id="txnTypeTabs"><button class="type-tab active" data-type="expense" type="button">Expense</button><button class="type-tab" data-type="income" type="button">Income</button><button class="type-tab" data-type="transfer" type="button">Transfer</button></div></div><div class="field"><label class="label">Amount</label><input class="input" type="number" id="txnAmount" /></div><div class="field"><label class="label">Account</label><select class="input" id="txnAccount"></select></div><div class="field" id="txnTransferToField" style="display:none"><label class="label">Transfer to</label><select class="input" id="txnTransferTo"></select></div><div class="field" id="txnCategoryField"><label class="label">Category</label><select class="input" id="txnCategory"></select></div><div class="field"><label class="label">Date</label><input class="input" type="date" id="txnDate" /></div><div class="field"><label class="label">Remarks</label><input class="input" type="text" id="txnRemarks" /></div><button class="btn-primary" type="button" id="saveTxnBtn">Save transaction</button></div></div></div>
 
-<!-- Reimburse Modal -->
-<div class="modal-backdrop hidden" id="reimburseModal"><div class="modal"><div class="modal-head"><h3 class="modal-title">New Reimbursement</h3><button class="icon-btn" type="button" data-close="reimburseModal">✕</button></div><div class="fields"><div class="field"><label class="label">Person name</label><input class="input" type="text" id="reimbPersonName" /></div><div class="field"><label class="label">Total amount</label><input class="input" type="number" id="reimbAmount" /></div><div class="field"><label class="label">Paid from account</label><select class="input" id="reimbAccount"></select></div><div class="field"><label class="label">Date</label><input class="input" type="date" id="reimbDate" /></div><div class="field"><label class="label">Remarks</label><input class="input" type="text" id="reimbRemarks" /></div><button class="btn-primary" type="button" id="saveReimburseBtn">Save</button></div></div></div>
+<!-- Reimburse Modal (New) -->
+<div class="modal-backdrop hidden" id="reimburseModal"><div class="modal"><div class="modal-head"><h3 class="modal-title" id="reimburseModalTitle">New Reimbursement</h3><button class="icon-btn" type="button" data-close="reimburseModal">✕</button></div><div class="fields"><input type="hidden" id="reimbId" /><div class="field"><label class="label">Person name</label><input class="input" type="text" id="reimbPersonName" /></div><div class="field"><label class="label">Total amount</label><input class="input" type="number" id="reimbAmount" /></div><div class="field"><label class="label">Category</label><select class="input" id="reimbCategory"></select></div><div class="field"><label class="label">Paid from account</label><select class="input" id="reimbAccount"></select></div><div class="field"><label class="label">Date</label><input class="input" type="date" id="reimbDate" /></div><div class="field"><label class="label">Remarks</label><input class="input" type="text" id="reimbRemarks" /></div><button class="btn-primary" type="button" id="saveReimburseBtn">Save</button></div></div></div>
 
 <!-- Payback Modal -->
 <div class="modal-backdrop hidden" id="paybackModal"><div class="modal"><div class="modal-head"><h3 class="modal-title">Record Payback</h3><button class="icon-btn" type="button" data-close="paybackModal">✕</button></div><div class="fields"><input type="hidden" id="paybackReimburseId" /><div class="field"><label class="label">Amount received</label><input class="input" type="number" id="paybackAmount" /></div><div class="field"><label class="label">Into account</label><select class="input" id="paybackAccount"></select></div><div class="field"><label class="label">Date</label><input class="input" type="date" id="paybackDate" /></div><div class="field"><label class="label">Remarks</label><input class="input" type="text" id="paybackRemarks" /></div><button class="btn-primary" type="button" id="savePaybackBtn">Save payback</button></div></div></div>
