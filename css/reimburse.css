@@ -1,0 +1,142 @@
+/* ── Reimburse timeline (Meow-style) ──────────────────── */
+
+/* Wrapper replaces the flat .list */
+.reimb-timeline { display: flex; flex-direction: column; gap: 8px; }
+
+/* Each card */
+.reimb-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 20px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: box-shadow .18s;
+}
+.reimb-card:hover { box-shadow: 0 12px 36px rgba(40,37,29,.14); }
+
+/* Top row: avatar circle + name/sub + amount + badge */
+.reimb-card-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Colored icon bubble */
+.reimb-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: var(--primary-hl);
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  flex-shrink: 0;
+  color: var(--primary);
+  font-weight: 700;
+}
+[data-theme="dark"] .reimb-avatar { background: var(--surface3); }
+
+/* Pending = warm orange tint */
+.reimb-avatar.status-pending  { background: var(--orange-bg); color: var(--orange); }
+/* Partial = teal tint */
+.reimb-avatar.status-partial  { background: var(--primary-hl); color: var(--primary); }
+/* Settled = green tint */
+.reimb-avatar.status-settled  { background: var(--green-bg); color: var(--green); }
+
+/* Name + meta text */
+.reimb-info { flex: 1; min-width: 0; }
+.reimb-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.reimb-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  flex-wrap: wrap;
+}
+.reimb-chip {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--surface3);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.reimb-chip.chip-due   { background: var(--red-bg);    color: var(--red); }
+.reimb-chip.chip-paid  { background: var(--green-bg);  color: var(--green); }
+.reimb-chip.chip-total { background: var(--surface3);  color: var(--muted); }
+
+/* Amount on the right */
+.reimb-amount-col {
+  text-align: right;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+.reimb-amount {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+}
+.reimb-amount.amount-pending { color: var(--red); }
+.reimb-amount.amount-partial  { color: var(--orange); }
+.reimb-amount.amount-settled  { color: var(--green); }
+
+/* Badge pill */
+.reimb-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 99px;
+  text-transform: capitalize;
+  letter-spacing: .02em;
+}
+.reimb-badge.status-settled { background: var(--green-bg);  color: var(--green); }
+.reimb-badge.status-partial  { background: var(--orange-bg); color: var(--orange); }
+.reimb-badge.status-pending  { background: var(--red-bg);    color: var(--red); }
+
+/* Progress bar */
+.reimb-progress-wrap {
+  height: 6px;
+  border-radius: 99px;
+  background: var(--surface3);
+  overflow: hidden;
+}
+.reimb-progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--primary);
+  transition: width .45s cubic-bezier(.4,0,.2,1);
+}
+.reimb-card.status-settled .reimb-progress-fill { background: var(--green); }
+.reimb-card.status-pending  .reimb-progress-fill { background: var(--red); }
+
+/* Remarks row */
+.reimb-remarks {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Action buttons row */
+.reimb-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
