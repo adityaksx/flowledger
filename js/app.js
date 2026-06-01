@@ -93,14 +93,22 @@ function norm(s) { return String(s||'').trim().replace(/\s+/g,' ').toLowerCase()
 
 function iconHTML(val, fallback='💳') {
   if (!val) return fallback;
-  if (String(val).startsWith('http')) return `<img src="${val}" style="width:28px;height:28px;object-fit:contain" />`;
+  if (String(val).startsWith('http')) return `<img src="${val}" style="width:28px;height:28px;object-fit:contain;vertical-align:middle" />`;
   return val;
 }
 
 function toast(msg) {
   let t = $('toast');
-  if (!t) { t=document.createElement('div'); t.id='toast'; t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#28251d;color:#f9f8f4;padding:10px 20px;border-radius:999px;font-size:14px;font-weight:600;z-index:9999;display:none'; document.body.appendChild(t); }
-  t.textContent = msg; t.style.display='block'; clearTimeout(toast._t); toast._t = setTimeout(() => t.style.display='none', 2400);
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#28251d;color:#f9f8f4;padding:10px 20px;border-radius:999px;font-size:14px;font-weight:600;z-index:9999;display:none';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.style.display = 'none', 2400);
 }
 
 function openModal(id) { $(id).classList.remove('hidden'); }
