@@ -90,6 +90,9 @@ const route = () => ROUTES[location.hash.replace('#','')] ? location.hash.replac
 const sym   = c => ({USD:'$', EUR:'€', GBP:'£'}[c] || '₹');
 const fmt   = (n, c='₹') => c + Number(n||0).toLocaleString('en-IN', {minimumFractionDigits:0, maximumFractionDigits:2});
 
+// Normalise a string: trim, collapse whitespace, lowercase
+function norm(s) { return String(s||'').trim().replace(/\s+/g,' ').toLowerCase(); }
+
 function iconHTML(val, fallback='💳') {
   if (!val) return fallback;
   if (String(val).startsWith('http')) return `<img src="${val}" alt="" style="width:28px;height:28px;object-fit:contain;" />`;
@@ -103,6 +106,30 @@ function toast(msg) {
 }
 function openModal(id)  { $(id).classList.remove('hidden'); }
 function closeModal(id) { $(id).classList.add('hidden'); }
+
+// Show a detailed popup listing skipped account names after import
+function showSkippedPopup(skippedAccounts, skippedDupe, skippedNoAmount) {
+  let existing = document.getElementById('skippedPopup');
+  if (existing) existing.remove();
+
+  const lines = [];
+  if (skippedAccounts.length) {
+    const unique = [...new Set(skippedAccounts)];
+    lines.push(`<b>⚠️ ${skippedAccounts.length} rows skipped — account not registered:</b>`);
+    lines.push(`<ul style="margin:8px 0 0 0;padding-left:18px;text-align:left">${unique.map(a=>`<li>${a}</li>`).join('')}</ul>`);
+    lines.push(`<div style="margin-top:6px;font-size:12px;opacity:0.7">Add these accounts in Settings → Accounts, then re-import.</div>`);
+  }
+  if (skippedDupe) lines.push(`<div style="margin-top:6px">🔁 ${skippedDupe} duplicate rows skipped.</div>`);
+  if (skippedNoAmount) lines.push(`<div style="margin-top:4px">🚫 ${skippedNoAmount} rows skipped (zero/missing amount).</div>`);
+
+  if (!lines.length) return;
+
+  const popup = document.createElement('div');
+  popup.id = 'skippedPopup';
+  popup.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card);color:var(--text);padding:24px 28px;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,0.35);z-index:10000;max-width:360px;width:90%;text-align:center;font-size:14px;line-height:1.6';
+  popup.innerHTML = lines.join('') + `<br><button onclick="document.getElementById('skippedPopup').remove()" style="margin-top:16px;padding:8px 24px;border-radius:999px;border:none;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;font-size:14px">OK</button>`;
+  document.body.appendChild(popup);
+}
 
 function parseDate(v) {
   if (!v) return today();
@@ -163,13 +190,25 @@ function catSelect(id, type='expense') {
   const s = $(id); if (!s) return;
   s.innerHTML = '<option value="">No category</option>' + categories.filter(c => c.type===type).map(c => `<option value="${c.id}">${iconHTML(c.emoji, '📂')} ${c.name}</option>`).join('');
 }
+
+// Case-insensitive, whitespace-collapsed account lookup
 function findAccount(name) {
-  const n = String(name||'').trim().toLowerCase();
-  return accounts.find(a => a.name.trim().toLowerCase() === n) || accounts.find(a => a.name.trim().toLowerCase().includes(n)) || null;
+  const n = norm(name);
+  if (!n) return null;
+  return accounts.find(a => norm(a.name) === n)
+      || accounts.find(a => norm(a.name).includes(n))
+      || accounts.find(a => n.includes(norm(a.name)))
+      || null;
 }
+
+// Case-insensitive, whitespace-collapsed category lookup
 function findCategory(name, type) {
-  const n = String(name||'').trim().toLowerCase();
-  return categories.find(c => c.type===type && c.name.trim().toLowerCase() === n) || categories.find(c => c.type===type && c.name.trim().toLowerCase().includes(n)) || null;
+  const n = norm(name);
+  if (!n) return null;
+  return categories.find(c => c.type===type && norm(c.name) === n)
+      || categories.find(c => c.type===type && norm(c.name).includes(n))
+      || categories.find(c => c.type===type && n.includes(norm(c.name)))
+      || null;
 }
 
 function txnHTML(t) {
@@ -408,8 +447,15 @@ function parseCsv(text, delim) {
     const ch=text[i], nx=text[i+1];
     if (ch==='"') { if (inQ && nx==='"') { cell+='"'; i++; } else inQ=!inQ; }
     else if (ch===delim && !inQ) { row.push(cell); cell=''; }
-    else if ((ch==='\n' || ch==='\r') && !inQ) { if (ch==='\r'&&nx==='\n') i++; row.push(cell); rows.push(row); row=[]; cell=''; }
-    else cell+=ch;
+    else if ((ch==='\n' || ch==='\r') && !inQ) {
+      // newline inside quotes is replaced with a space to prevent row grouping
+      if (ch==='\r'&&nx==='\n') i++;
+      row.push(cell); rows.push(row); row=[]; cell='';
+    } else if ((ch==='\n' || ch==='\r') && inQ) {
+      // newline inside a quoted cell → replace with space, do NOT split the row
+      cell += ' ';
+      if (ch==='\r'&&nx==='\n') i++;
+    } else cell+=ch;
   }
   if (row.length || cell) { row.push(cell); rows.push(row); }
   return rows.filter(r => r.some(v => String(v).trim() !== ''));
@@ -437,7 +483,8 @@ function autoMap() {
 
 function previewTable(rows) {
   const head = importHeaders;
-  const body = rows.slice(0,8).map(r => `<tr>${head.map((_,i) => `<td>${String(r[i]||'').replace(/</g,'&lt;')}</td>`).join('')}</tr>`).join('');
+  // Show ALL rows (no artificial slice), just cap at 500 for DOM performance
+  const body = rows.slice(0, 500).map(r => `<tr>${head.map((_,i) => `<td>${String(r[i]||'').replace(/</g,'&lt;')}</td>`).join('')}</tr>`).join('');
   return `<table class="mini-preview-table"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
 }
 
@@ -475,20 +522,22 @@ async function runImport() {
   if (clearBef && currentImportKind !== 'reimburse') await supabase.from('transactions').delete().eq('user_id', USER.id);
   if (clearBef && currentImportKind === 'reimburse') await supabase.from('reimbursements').delete().eq('user_id', USER.id);
   const existing = new Set(transactions.map(dedupeKey));
-  let inserted=0, skipped=0;
+  let inserted=0, skippedDupe=0, skippedNoAmount=0;
+  const skippedAccNames = [];  // collect names of unregistered accounts
 
   if (currentImportKind === 'transactions') {
     const payload = [];
     for (const row of importRows) {
-      const obj = Object.fromEntries(importHeaders.map((h,i) => [h, row[i]??'']));
+      const obj = Object.fromEntries(importHeaders.map((h,i) => [h, String(row[i]??'').trim()]));
       let amount = Math.abs(Number(obj[mp.amount]||0)); if (flip) amount = Math.abs(-amount);
-      if (!amount) { skipped++; continue; }
+      if (!amount) { skippedNoAmount++; continue; }
       let type = 'expense';
-      if (useType && mp.type) { const raw2 = String(obj[mp.type]||'').toLowerCase(); type = (raw2.includes('income')||raw2.includes('inflow')) ? 'income' : 'expense'; }
-      const acc = findAccount(obj[mp.account]); if (!acc) { skipped++; continue; }
+      if (useType && mp.type) { const raw2 = norm(obj[mp.type]); type = (raw2.includes('income')||raw2.includes('inflow')) ? 'income' : 'expense'; }
+      const acc = findAccount(obj[mp.account]);
+      if (!acc) { skippedAccNames.push(obj[mp.account] || '(empty)'); continue; }
       const cat = findCategory(obj[mp.category], type);
       const item = { user_id:USER.id, date:parseDate(obj[mp.date]), amount, type, category_id:cat?.id||null, account_id:acc.id, remarks:obj[mp.note]||'', is_transfer:false, transfer_to_account_id:null };
-      const fp = dedupeKey(item); if (merge && existing.has(fp)) { skipped++; continue; }
+      const fp = dedupeKey(item); if (merge && existing.has(fp)) { skippedDupe++; continue; }
       existing.add(fp); payload.push(item);
     }
     if (payload.length) { const {error} = await supabase.from('transactions').insert(payload); if (error) return toast('❌ '+error.message); inserted = payload.length; }
@@ -497,12 +546,14 @@ async function runImport() {
   if (currentImportKind === 'transfers') {
     const payload = [];
     for (const row of importRows) {
-      const obj = Object.fromEntries(importHeaders.map((h,i) => [h, row[i]??'']));
-      const amount = Math.abs(Number(obj[mp.amount]||0)); if (!amount) { skipped++; continue; }
+      const obj = Object.fromEntries(importHeaders.map((h,i) => [h, String(row[i]??'').trim()]));
+      const amount = Math.abs(Number(obj[mp.amount]||0)); if (!amount) { skippedNoAmount++; continue; }
       const from = findAccount(obj[mp.from_account]), to = findAccount(obj[mp.to_account]);
-      if (!from || !to || from.id===to.id) { skipped++; continue; }
+      if (!from) { skippedAccNames.push(obj[mp.from_account] || '(empty from)'); continue; }
+      if (!to) { skippedAccNames.push(obj[mp.to_account] || '(empty to)'); continue; }
+      if (from.id===to.id) { skippedNoAmount++; continue; }
       const item = { user_id:USER.id, date:parseDate(obj[mp.date]), amount, type:'transfer', category_id:null, account_id:from.id, remarks:obj[mp.note]||'', is_transfer:true, transfer_to_account_id:to.id };
-      const fp = dedupeKey(item); if (merge && existing.has(fp)) { skipped++; continue; }
+      const fp = dedupeKey(item); if (merge && existing.has(fp)) { skippedDupe++; continue; }
       existing.add(fp); payload.push(item);
     }
     if (payload.length) { const {error} = await supabase.from('transactions').insert(payload); if (error) return toast('❌ '+error.message); inserted = payload.length; }
@@ -510,15 +561,15 @@ async function runImport() {
 
   if (currentImportKind === 'reimburse') {
     for (const row of importRows) {
-      const obj = Object.fromEntries(importHeaders.map((h,i) => [h, row[i]??'']));
+      const obj = Object.fromEntries(importHeaders.map((h,i) => [h, String(row[i]??'').trim()]));
       const person = (obj[mp.Person_name]||obj[mp.person_name]||'').trim();
       const total = Number(obj[mp.original_amount]||0);
       const paid = Number(obj[mp.reimbursed]||0);
-      if (!person || !total) { skipped++; continue; }
+      if (!person || !total) { skippedNoAmount++; continue; }
       const pending = Number(obj[mp.pending] || Math.max(0, total-paid));
       const status = pending<=0 ? 'settled' : paid>0 ? 'partial' : 'pending';
       const {data:rb, error} = await supabase.from('reimbursements').insert({user_id:USER.id,person_name:person,total_amount:total,paid_back:paid,status}).select().single();
-      if (error) { skipped++; continue; }
+      if (error) { skippedNoAmount++; continue; }
       inserted++;
       const accFrom = findAccount(obj[mp.paid_from_account]);
       const accTo = findAccount(obj[mp.refund_to_account]);
@@ -529,7 +580,11 @@ async function runImport() {
   }
 
   await loadAll(); render(); closeModal('importModal');
-  toast(`✅ Imported ${inserted}, skipped ${skipped}`);
+  toast(`✅ Imported ${inserted}${skippedAccNames.length||skippedDupe||skippedNoAmount ? `, skipped ${skippedAccNames.length+skippedDupe+skippedNoAmount}` : ''}`);
+  // Show detailed popup if anything was skipped
+  if (skippedAccNames.length || skippedDupe || skippedNoAmount) {
+    showSkippedPopup(skippedAccNames, skippedDupe, skippedNoAmount);
+  }
 }
 
 (async () => {
