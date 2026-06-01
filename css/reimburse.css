@@ -1,230 +1,294 @@
-/* ── Meow Money Manager style — Reimburse Timeline ── */
+/* ── Meow-style Reimburse ───────────────────────────────────────── */
 
 /* Sub-tab bar */
 .reimb-tabs {
   display: flex;
-  gap: 8px;
+  gap: 0;
   margin-bottom: 20px;
-  background: var(--surface, #f3f2ee);
-  padding: 4px;
+  background: var(--surface3);
   border-radius: 999px;
+  padding: 4px;
   width: fit-content;
 }
-.reimb-tab {
-  padding: 7px 22px;
+.reimb-tab-btn {
+  padding: 7px 28px;
   border-radius: 999px;
   border: none;
   background: transparent;
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-muted, #888);
+  color: var(--muted);
   cursor: pointer;
-  transition: background 0.18s, color 0.18s;
+  transition: background .18s, color .18s;
 }
-.reimb-tab.active {
-  background: var(--card, #fff);
-  color: var(--text, #1a1a1a);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+.reimb-tab-btn.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 2px 8px rgba(0,0,0,.10);
 }
 
-/* Running totals row */
-.reimb-totals {
-  display: flex;
-  gap: 16px;
-  margin-bottom: 18px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted, #888);
-}
-.reimb-totals .tot-total { color: var(--text, #222); }
-.reimb-totals .tot-due   { color: #ef4444; }
-
-/* Date group header — "Mar 06  Fri  +14.45  -0" style */
-.reimb-day-group { margin-bottom: 8px; }
-.reimb-day-header {
+/* Stats row (C 8,814  ↵ 30 style) */
+.reimb-stats-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 2px 4px;
+  justify-content: flex-end;
+  gap: 18px;
+  margin-bottom: 10px;
   font-size: 15px;
-  font-weight: 800;
-  color: #ef4444;
+  font-weight: 700;
 }
-.reimb-day-header .day-dow {
+.reimb-stat-due   { color: var(--red); }
+.reimb-stat-total { color: var(--muted); }
+
+/* Timeline wrapper */
+.reimb-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+}
+
+/* Date group header ("Mar 06  Fri  +14.45  -0") */
+.reimb-date-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 0 6px 0;
+  position: relative;
+  z-index: 1;
+}
+.reimb-date-label {
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--red);
+  letter-spacing: -.3px;
+  min-width: 72px;
+}
+.reimb-date-weekday {
   font-size: 12px;
   font-weight: 600;
-  color: var(--text-muted, #aaa);
-  background: var(--surface, #f3f2ee);
-  border-radius: 6px;
-  padding: 2px 7px;
+  color: var(--muted);
+  background: var(--surface3);
+  padding: 3px 9px;
+  border-radius: 99px;
 }
-.reimb-day-header .day-stats {
+.reimb-date-meta {
   margin-left: auto;
   display: flex;
   gap: 8px;
   font-size: 13px;
   font-weight: 700;
 }
-.reimb-day-header .day-stats .ds-in  { color: var(--text-muted, #aaa); }
-.reimb-day-header .day-stats .ds-out { color: #ef4444; }
+.reimb-date-plus  { color: var(--green); }
+.reimb-date-minus { color: var(--red);   }
 
-/* Vertical timeline line */
-.reimb-timeline-items {
-  position: relative;
-  padding-left: 24px;
-  border-left: 2px solid var(--border, #e5e5e5);
-  margin-bottom: 12px;
-}
-
-/* Single card row */
-.reimb-row {
+/* The actual card row */
+.reimb-entry {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--card, #fff);
-  border-radius: 16px;
-  padding: 12px 14px;
-  margin-bottom: 8px;
-  box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+  align-items: stretch;
+  gap: 0;
   position: relative;
-  transition: transform 0.15s, box-shadow 0.15s;
-  cursor: pointer;
-}
-.reimb-row:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 18px rgba(0,0,0,0.12);
+  margin-bottom: 8px;
 }
 
-/* Timeline dot on the left edge */
-.reimb-row::before {
-  content: '';
-  position: absolute;
-  left: -31px;
-  top: 50%;
-  transform: translateY(-50%);
+/* Vertical timeline line + dot */
+.reimb-line-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 28px;
+  flex-shrink: 0;
+  position: relative;
+}
+.reimb-dot {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--accent, #01696f);
-  border: 2px solid var(--card, #fff);
-  box-shadow: 0 0 0 2px var(--accent, #01696f);
+  background: var(--primary);
+  margin-top: 18px;
+  flex-shrink: 0;
+  z-index: 1;
+  position: relative;
+}
+.reimb-line {
+  width: 2px;
+  flex: 1;
+  background: var(--border);
+  margin-top: 2px;
 }
 
-/* Category icon circle */
-.reimb-cat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
+/* Time label ("16:15") */
+.reimb-time {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+  min-width: 34px;
+  padding-top: 15px;
+  flex-shrink: 0;
+  text-align: right;
+  margin-right: 8px;
+}
+
+/* The card bubble */
+.reimb-card {
+  flex: 1;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 18px;
+  padding: 12px 14px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-size: 22px;
-  background: var(--surface, #f3f2ee);
-}
-.reimb-cat-icon img {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-}
-
-/* Middle info */
-.reimb-row-info {
-  flex: 1;
+  gap: 12px;
+  box-shadow: 0 2px 12px rgba(40,37,29,.07);
+  transition: box-shadow .18s;
   min-width: 0;
 }
-.reimb-row-title {
-  font-size: 15px;
+.reimb-card:hover { box-shadow: 0 6px 24px rgba(40,37,29,.13); }
+
+/* Status-tinted left border accent */
+.reimb-card.status-pending { border-left: 4px solid var(--red); }
+.reimb-card.status-partial  { border-left: 4px solid var(--orange); }
+.reimb-card.status-settled  { border-left: 4px solid var(--green); }
+
+/* Category icon bubble */
+.reimb-icon-bubble {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.reimb-icon-bubble img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+.reimb-card.status-pending .reimb-icon-bubble { background: #fde8f0; }
+.reimb-card.status-partial  .reimb-icon-bubble { background: var(--orange-bg); }
+.reimb-card.status-settled  .reimb-icon-bubble { background: var(--green-bg); }
+[data-theme="dark"] .reimb-card.status-pending .reimb-icon-bubble { background: var(--red-bg); }
+
+/* Middle info */
+.reimb-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.reimb-person {
+  font-size: 14px;
   font-weight: 700;
-  color: var(--text, #1a1a1a);
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.reimb-row-sub {
-  font-size: 12px;
-  color: var(--text-muted, #888);
-  margin-top: 2px;
+.reimb-sub-row {
   display: flex;
+  align-items: center;
   gap: 6px;
   flex-wrap: wrap;
-  align-items: center;
 }
-.reimb-chip-sm {
-  background: var(--surface, #f3f2ee);
-  border-radius: 999px;
-  padding: 1px 8px;
+.reimb-chip {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 99px;
+  white-space: nowrap;
+}
+.reimb-chip.chip-date    { background: var(--surface3); color: var(--muted); }
+.reimb-chip.chip-account { background: var(--primary-hl); color: var(--primary); }
+.reimb-chip.chip-cat     { background: var(--surface3); color: var(--muted); }
+.reimb-remarks {
   font-size: 11px;
-  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.reimb-chip-sm.chip-due  { background: #fef2f2; color: #ef4444; }
-.reimb-chip-sm.chip-paid { background: #f0fdf4; color: #16a34a; }
+
+/* Progress bar */
+.reimb-progress-wrap {
+  height: 4px;
+  border-radius: 99px;
+  background: var(--surface3);
+  overflow: hidden;
+  margin-top: 4px;
+}
+.reimb-progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width .4s ease;
+}
+.status-pending .reimb-progress-fill { background: var(--red); }
+.status-partial  .reimb-progress-fill { background: var(--orange); }
+.status-settled  .reimb-progress-fill { background: var(--green); }
 
 /* Right amount column */
-.reimb-row-right {
-  text-align: right;
-  flex-shrink: 0;
+.reimb-amount-col {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 4px;
+  flex-shrink: 0;
 }
-.reimb-row-amt {
-  font-size: 17px;
+.reimb-amount {
+  font-size: 16px;
   font-weight: 800;
   line-height: 1;
 }
-.reimb-row-amt.amt-pending { color: #ef4444; }
-.reimb-row-amt.amt-partial  { color: #f97316; }
-.reimb-row-amt.amt-settled  { color: #16a34a; }
+.reimb-amount.amt-pending { color: var(--red); }
+.reimb-amount.amt-partial  { color: var(--orange); }
+.reimb-amount.amt-settled  { color: var(--green); }
 
-.reimb-badge-sm {
-  font-size: 10px;
-  font-weight: 700;
-  border-radius: 999px;
-  padding: 1px 8px;
-  text-transform: capitalize;
-  letter-spacing: 0.03em;
+/* "C 1750" total below amount */
+.reimb-total-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
 }
-.reimb-badge-sm.badge-pending { background: #fef2f2; color: #ef4444; }
-.reimb-badge-sm.badge-partial  { background: #fff7ed; color: #f97316; }
-.reimb-badge-sm.badge-settled  { background: #f0fdf4; color: #16a34a; }
 
-/* Row action buttons (shown on hover) */
-.reimb-row-actions {
+/* Action buttons */
+.reimb-card-actions {
   display: flex;
   gap: 6px;
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border, #f0f0f0);
-  width: 100%;
-}
-.reimb-row-wrap {
-  flex-direction: column;
-  align-items: stretch;
-}
-.reimb-row-top {
-  display: flex;
+  flex-shrink: 0;
   align-items: center;
-  gap: 12px;
-  width: 100%;
 }
 
-/* Progress bar (thin, inside card at bottom) */
-.reimb-mini-bar {
-  height: 3px;
-  border-radius: 99px;
-  background: var(--border, #e5e5e5);
-  margin-top: 6px;
-  overflow: hidden;
-  width: 100%;
+/* Compact icon action buttons */
+.reimb-action-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background .14s;
+  flex-shrink: 0;
 }
-.reimb-mini-bar-fill {
-  height: 100%;
-  border-radius: 99px;
-  background: var(--accent, #01696f);
-  transition: width 0.4s;
+.reimb-action-btn:hover { background: var(--surface3); }
+.reimb-action-btn.danger {
+  border-color: var(--red-bg);
+  background: var(--red-bg);
+  color: var(--red);
 }
-.status-settled .reimb-mini-bar-fill { background: #16a34a; }
-.status-partial  .reimb-mini-bar-fill { background: #f97316; }
-.status-pending  .reimb-mini-bar-fill { background: #ef4444; }
+.reimb-action-btn.danger:hover { filter: brightness(.9); }
+
+/* Empty state */
+.reimb-empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+/* Edit reimburse modal extra field */
+#editReimburseModal .fields { gap: 12px; }
