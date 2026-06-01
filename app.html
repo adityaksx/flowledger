@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://api.fontshare.com" />
   <link href="https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./css/app.css" />
+  <link rel="stylesheet" href="./css/reimburse.css" />
 </head>
 <body>
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -87,7 +88,7 @@
       <!-- Reimburse -->
       <section class="view" data-view="reimburse">
         <div class="view-head"><div><h2 class="view-title">Reimburse</h2><p class="view-sub">Track money you paid for others.</p></div><div class="row-actions"><button class="btn-ghost" type="button" id="openReimburseImportBtn">Import CSV</button><button class="btn-primary" type="button" id="addReimburseBtn">+ New reimburse</button></div></div>
-        <div class="list" id="reimburseList"><div class="empty-state">No reimbursements yet.</div></div>
+        <div class="reimb-timeline" id="reimburseList"><div class="empty-state">No reimbursements yet.</div></div>
       </section>
 
       <!-- Ledger -->

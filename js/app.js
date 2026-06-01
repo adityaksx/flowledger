@@ -109,9 +109,6 @@ function closeModal(id) { $(id).classList.add('hidden'); }
 
 /**
  * Show skipped-rows popup after import.
- * @param {string[]} skippedAccounts  - account names that weren't found
- * @param {Array<{date,amount,type,account,remarks}>} skippedDupeRows - full detail of each duplicate row
- * @param {number} skippedNoAmount    - count of rows with zero/missing amount
  */
 function showSkippedPopup(skippedAccounts, skippedDupeRows, skippedNoAmount) {
   let existing = document.getElementById('skippedPopup');
@@ -349,24 +346,66 @@ function renderTransactions() {
   $('txnList').innerHTML = list.length ? list.map(txnHTML).join('') : '<div class="empty-state">No transactions match these filters.</div>';
 }
 
-function renderReimburse() {
-  $('reimburseList').innerHTML = reimbursements.length ? reimbursements.map(x => {
-    const pct = Math.min(100, Math.round(((Number(x.paid_back)||0) / Number(x.total_amount)) * 100));
-    const due = Number(x.total_amount) - (Number(x.paid_back)||0);
-    const badgeCls = x.status==='settled' ? 'badge-settled' : x.status==='partial' ? 'badge-partial' : 'badge-pending';
-    return `<div class="reimb-item">
-    <div class="card-head">
-    <div><strong>👤 ${x.person_name}</strong><div class="txn-sub">Total: ${fmt(x.total_amount)} · Paid: ${fmt(x.paid_back||0)} · Due: ${fmt(due)}</div></div>
-    <span class="badge ${badgeCls}">${x.status}</span>
+// ── Meow-style reimburse cards ──────────────────────────────────────────────
+function reimburseCardHTML(x) {
+  const due    = Number(x.total_amount) - (Number(x.paid_back) || 0);
+  const pct    = Math.min(100, Math.round(((Number(x.paid_back) || 0) / Number(x.total_amount)) * 100));
+  const status = x.status || 'pending';
+
+  // First letter of name as avatar initial
+  const initial = (x.person_name || '?')[0].toUpperCase();
+
+  // Color-coded amount label
+  const amtCls = status === 'settled' ? 'amount-settled'
+               : status === 'partial'  ? 'amount-partial'
+               : 'amount-pending';
+
+  // Amount shown: due if pending/partial, total if settled
+  const displayAmt = status === 'settled' ? fmt(x.total_amount) : `-${fmt(due)}`;
+
+  const remarksHTML = x.remarks
+    ? `<div class="reimb-remarks">📝 ${x.remarks}</div>`
+    : '';
+
+  return `
+  <div class="reimb-card status-${status}">
+    <div class="reimb-card-top">
+      <div class="reimb-avatar status-${status}">${initial}</div>
+
+      <div class="reimb-info">
+        <div class="reimb-name">${x.person_name}</div>
+        <div class="reimb-meta-row">
+          <span class="reimb-chip chip-total">Total ${fmt(x.total_amount)}</span>
+          <span class="reimb-chip chip-paid">Paid ${fmt(x.paid_back || 0)}</span>
+          ${due > 0 ? `<span class="reimb-chip chip-due">Due ${fmt(due)}</span>` : ''}
+        </div>
+      </div>
+
+      <div class="reimb-amount-col">
+        <span class="reimb-amount ${amtCls}">${displayAmt}</span>
+        <span class="reimb-badge status-${status}">${status}</span>
+      </div>
     </div>
-    <div class="progress-bar-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
-    <div class="row-actions">
-    ${x.status!=='settled' ? `<button class="btn-sm" onclick="openPayback('${x.id}')">Record payback</button>` : ''}
-    <button class="btn-danger" onclick="deleteReimburse('${x.id}')">Delete</button>
+
+    <div class="reimb-progress-wrap">
+      <div class="reimb-progress-fill" style="width:${pct}%"></div>
     </div>
-    </div>`;
-  }).join('') : '<div class="empty-state">No reimbursements yet.</div>';
+
+    ${remarksHTML}
+
+    <div class="reimb-actions">
+      ${status !== 'settled' ? `<button class="btn-sm" onclick="openPayback('${x.id}')">Record payback</button>` : ''}
+      <button class="btn-danger" onclick="deleteReimburse('${x.id}')">Delete</button>
+    </div>
+  </div>`;
 }
+
+function renderReimburse() {
+  $('reimburseList').innerHTML = reimbursements.length
+    ? reimbursements.map(reimburseCardHTML).join('')
+    : '<div class="empty-state">No reimbursements yet.</div>';
+}
+// ────────────────────────────────────────────────────────────────────────────
 
 function renderReports() {
   const c = profile.currency || 'INR', s = sym(c);
@@ -462,10 +501,7 @@ function expectedFields(k) {
 }
 
 /**
- * Robust CSV parser that handles:
- * 1. Properly quoted cells (RFC 4180)
- * 2. Unclosed quotes at end of line — force-closes the quote and ends the row
- * 3. Tabs or commas as delimiter
+ * Robust CSV parser
  */
 function parseCsv(text, delim) {
   const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
@@ -496,7 +532,7 @@ function parseCsv(text, delim) {
     }
 
     row.push(cell.trim());
-    inQ = false; // never carry quote state across lines
+    inQ = false;
     if (row.some(v => v !== '')) rows.push(row);
   }
 
@@ -565,7 +601,6 @@ async function runImport() {
   const existing = new Set(transactions.map(dedupeKey));
   let inserted=0, skippedNoAmount=0;
   const skippedAccNames = [];
-  // Now an array of objects instead of a plain count
   const skippedDupeRows = [];
 
   if (currentImportKind === 'transactions') {
