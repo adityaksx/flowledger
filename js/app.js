@@ -604,8 +604,6 @@ function bindUI() {
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeAllModals(); closeSidebar(); } });
 }
 
-function closeSidebar() { document.body.classList.remove('sidebar-open'); }
-function openSidebar() { document.body.classList.add('sidebar-open'); }
 function syncResponsiveUI() { document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.toggle('mobile-sheet', isMobileView())); }
 
 function initApp() {
