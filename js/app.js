@@ -8,6 +8,7 @@ let accounts=[], categories=[], transactions=[], reimbursements=[], profile={};
 let currentTxnType='expense', currentCatType='expense';
 let currentImportKind='transactions', importRows=[], importHeaders=[];
 let iconTargetInput=null;
+let currentReimbTab = 'reimburse'; // 'reimburse' | 'refunded'
 
 const ICON_BASE = 'https://raw.githubusercontent.com/adityaksx/flowledger/refs/heads/main/assets/icons/';
 
@@ -90,7 +91,6 @@ const route = () => ROUTES[location.hash.replace('#','')] ? location.hash.replac
 const sym   = c => ({USD:'$', EUR:'€', GBP:'£'}[c] || '₹');
 const fmt   = (n, c='₹') => c + Number(n||0).toLocaleString('en-IN', {minimumFractionDigits:0, maximumFractionDigits:2});
 
-// Normalise a string: trim, collapse whitespace, lowercase
 function norm(s) { return String(s||'').trim().replace(/\s+/g,' ').toLowerCase(); }
 
 function iconHTML(val, fallback='💳') {
@@ -107,22 +107,16 @@ function toast(msg) {
 function openModal(id)  { $(id).classList.remove('hidden'); }
 function closeModal(id) { $(id).classList.add('hidden'); }
 
-/**
- * Show skipped-rows popup after import.
- */
 function showSkippedPopup(skippedAccounts, skippedDupeRows, skippedNoAmount) {
   let existing = document.getElementById('skippedPopup');
   if (existing) existing.remove();
-
   const lines = [];
-
   if (skippedAccounts.length) {
     const unique = [...new Set(skippedAccounts)];
     lines.push(`<b>⚠️ ${skippedAccounts.length} row${skippedAccounts.length>1?'s':''} skipped — account not registered:</b>`);
     lines.push(`<ul style="margin:8px 0 0 0;padding-left:18px;text-align:left">${unique.map(a=>`<li>${a}</li>`).join('')}</ul>`);
     lines.push(`<div style="margin-top:6px;font-size:12px;opacity:0.7">Add these accounts in Settings → Accounts, then re-import.</div>`);
   }
-
   if (skippedDupeRows.length) {
     lines.push(`<b style="display:block;margin-top:${skippedAccounts.length?'14px':'0'}">🔁 ${skippedDupeRows.length} duplicate row${skippedDupeRows.length>1?'s':''} skipped:</b>`);
     const rowsHtml = skippedDupeRows.map(r => {
@@ -134,13 +128,8 @@ function showSkippedPopup(skippedAccounts, skippedDupeRows, skippedNoAmount) {
     lines.push(`<ul style="margin:8px 0 0 0;padding-left:18px;text-align:left;font-size:13px">${rowsHtml}</ul>`);
     lines.push(`<div style="margin-top:6px;font-size:12px;opacity:0.6">These already exist in your transactions and were not re-added.</div>`);
   }
-
-  if (skippedNoAmount) {
-    lines.push(`<div style="margin-top:${skippedDupeRows.length||skippedAccounts.length?'10px':'0'}">🚫 ${skippedNoAmount} row${skippedNoAmount>1?'s':''} skipped (zero/missing amount).</div>`);
-  }
-
+  if (skippedNoAmount) lines.push(`<div style="margin-top:${skippedDupeRows.length||skippedAccounts.length?'10px':'0'}">🚫 ${skippedNoAmount} row${skippedNoAmount>1?'s':''} skipped (zero/missing amount).</div>`);
   if (!lines.length) return;
-
   const popup = document.createElement('div');
   popup.id = 'skippedPopup';
   popup.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card);color:var(--text);padding:24px 28px;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,0.35);z-index:10000;max-width:400px;width:92%;text-align:center;font-size:14px;line-height:1.6;max-height:80vh;overflow-y:auto';
@@ -208,7 +197,6 @@ function catSelect(id, type='expense') {
   s.innerHTML = '<option value="">No category</option>' + categories.filter(c => c.type===type).map(c => `<option value="${c.id}">${iconHTML(c.emoji, '📂')} ${c.name}</option>`).join('');
 }
 
-// Case-insensitive, whitespace-collapsed account lookup
 function findAccount(name) {
   const n = norm(name);
   if (!n) return null;
@@ -218,7 +206,6 @@ function findAccount(name) {
       || null;
 }
 
-// Case-insensitive, whitespace-collapsed category lookup
 function findCategory(name, type) {
   const n = norm(name);
   if (!n) return null;
@@ -346,505 +333,97 @@ function renderTransactions() {
   $('txnList').innerHTML = list.length ? list.map(txnHTML).join('') : '<div class="empty-state">No transactions match these filters.</div>';
 }
 
-// ── Meow-style reimburse cards ──────────────────────────────────────────────
-function reimburseCardHTML(x) {
-  const due    = Number(x.total_amount) - (Number(x.paid_back) || 0);
-  const pct    = Math.min(100, Math.round(((Number(x.paid_back) || 0) / Number(x.total_amount)) * 100));
+// ── Meow-style Reimburse Timeline ────────────────────────────────────────────
+
+// Get category icon for a reimburse entry (uses linked transaction's category, or remarks hint)
+function reimbCatIcon(x) {
+  // Try to find the linked expense transaction to get its category icon
+  const linked = transactions.find(t => t.reimburse_id === x.id);
+  if (linked) {
+    const cat = categories.find(c => c.id === linked.category_id);
+    if (cat?.emoji) {
+      if (String(cat.emoji).startsWith('http')) {
+        return `<img src="${cat.emoji}" alt="" style="width:32px;height:32px;object-fit:contain;" />`;
+      }
+      return cat.emoji;
+    }
+  }
+  // fallback: person initial in coloured circle
+  return (x.person_name || '?')[0].toUpperCase();
+}
+
+// Format date for display: "Mar 06" style + day-of-week
+function fmtDateHeader(dateStr) {
+  if (!dateStr) return { mon: '', day: '', dow: '' };
+  const d = new Date(dateStr + 'T00:00:00');
+  const mon = d.toLocaleString('en-US', { month: 'short' });
+  const day = String(d.getDate()).padStart(2, '0');
+  const dow = d.toLocaleString('en-US', { weekday: 'short' });
+  return { mon, day, dow };
+}
+
+function reimbRowHTML(x) {
+  const due    = Math.max(0, Number(x.total_amount) - (Number(x.paid_back) || 0));
+  const pct    = Math.min(100, Math.round(((Number(x.paid_back) || 0) / (Number(x.total_amount) || 1)) * 100));
   const status = x.status || 'pending';
+  const catIcon = reimbCatIcon(x);
+  const amtCls = status === 'settled' ? 'amt-settled' : status === 'partial' ? 'amt-partial' : 'amt-pending';
+  const displayAmt = status === 'settled'
+    ? fmt(x.total_amount)
+    : `-${fmt(due)}`;
 
-  // First letter of name as avatar initial
-  const initial = (x.person_name || '?')[0].toUpperCase();
-
-  // Color-coded amount label
-  const amtCls = status === 'settled' ? 'amount-settled'
-               : status === 'partial'  ? 'amount-partial'
-               : 'amount-pending';
-
-  // Amount shown: due if pending/partial, total if settled
-  const displayAmt = status === 'settled' ? fmt(x.total_amount) : `-${fmt(due)}`;
-
-  const remarksHTML = x.remarks
-    ? `<div class="reimb-remarks">📝 ${x.remarks}</div>`
-    : '';
+  const subParts = [];
+  if (x.remarks) subParts.push(`📝 ${x.remarks}`);
+  if (due > 0 && status !== 'settled') subParts.push(`<span class="reimb-chip-sm chip-due">Due ${fmt(due)}</span>`);
+  if (Number(x.paid_back) > 0) subParts.push(`<span class="reimb-chip-sm chip-paid">Paid ${fmt(x.paid_back)}</span>`);
 
   return `
-  <div class="reimb-card status-${status}">
-    <div class="reimb-card-top">
-      <div class="reimb-avatar status-${status}">${initial}</div>
-
-      <div class="reimb-info">
-        <div class="reimb-name">${x.person_name}</div>
-        <div class="reimb-meta-row">
-          <span class="reimb-chip chip-total">Total ${fmt(x.total_amount)}</span>
-          <span class="reimb-chip chip-paid">Paid ${fmt(x.paid_back || 0)}</span>
-          ${due > 0 ? `<span class="reimb-chip chip-due">Due ${fmt(due)}</span>` : ''}
-        </div>
+  <div class="reimb-row reimb-row-wrap status-${status}">
+    <div class="reimb-row-top">
+      <div class="reimb-cat-icon">${catIcon}</div>
+      <div class="reimb-row-info">
+        <div class="reimb-row-title">${x.person_name}</div>
+        <div class="reimb-row-sub">${subParts.join('') || fmt(x.total_amount)}</div>
+        <div class="reimb-mini-bar"><div class="reimb-mini-bar-fill" style="width:${pct}%"></div></div>
       </div>
-
-      <div class="reimb-amount-col">
-        <span class="reimb-amount ${amtCls}">${displayAmt}</span>
-        <span class="reimb-badge status-${status}">${status}</span>
+      <div class="reimb-row-right">
+        <span class="reimb-row-amt ${amtCls}">${displayAmt}</span>
+        <span class="reimb-badge-sm badge-${status}">${status}</span>
       </div>
     </div>
-
-    <div class="reimb-progress-wrap">
-      <div class="reimb-progress-fill" style="width:${pct}%"></div>
-    </div>
-
-    ${remarksHTML}
-
-    <div class="reimb-actions">
-      ${status !== 'settled' ? `<button class="btn-sm" onclick="openPayback('${x.id}')">Record payback</button>` : ''}
-      <button class="btn-danger" onclick="deleteReimburse('${x.id}')">Delete</button>
+    <div class="reimb-row-actions">
+      ${status !== 'settled' ? `<button class="btn-sm" onclick="openPayback('${x.id}')">💰 Payback</button>` : ''}
+      <button class="btn-sm" onclick="editReimburse('${x.id}')">✏️ Edit</button>
+      <button class="btn-danger" onclick="deleteReimburse('${x.id}')">🗑️ Delete</button>
     </div>
   </div>`;
 }
 
 function renderReimburse() {
-  $('reimburseList').innerHTML = reimbursements.length
-    ? reimbursements.map(reimburseCardHTML).join('')
-    : '<div class="empty-state">No reimbursements yet.</div>';
-}
-// ────────────────────────────────────────────────────────────────────────────
+  const container = $('reimburseList');
 
-function renderReports() {
-  const c = profile.currency || 'INR', s = sym(c);
-  const mt = monthTxns();
-  const income = mt.filter(t => t.type==='income' && !t.is_transfer).reduce((s,t) => s+Number(t.amount), 0);
-  const expense = mt.filter(t => t.type==='expense' && !t.is_transfer).reduce((s,t) => s+Number(t.amount), 0);
-  $('repIncome').textContent = fmt(income, s);
-  $('repExpense').textContent = fmt(expense, s);
-  $('repSavings').textContent = fmt(income - expense, s);
-  const map = {};
-  mt.filter(t => t.type==='expense' && !t.is_transfer).forEach(t => { const k = t.category_id||'__none'; map[k]=(map[k]||0)+Number(t.amount); });
-  const total = Object.values(map).reduce((a,b)=>a+b,0) || 1;
-  $('reportCatList').innerHTML = Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([cid,amt]) => {
-    const cat = categories.find(c => c.id===cid);
-    const pct = Math.round((amt/total)*100);
-    return `<div class="txn-item"><div class="ico-circle">${iconHTML(cat?.emoji, '📂')}</div><div class="txn-meta">${cat?.name||'Other'}<div class="progress-bar-wrap" style="margin-top:4px"><div class="progress-bar" style="width:${pct}%"></div></div></div><div class="txn-right">${fmt(amt,s)}</div></div>`;
-  }).join('') || '<div class="empty-state">No expense data this month.</div>';
-}
+  // Filter by active sub-tab
+  const filtered = currentReimbTab === 'reimburse'
+    ? reimbursements.filter(x => x.status !== 'settled')
+    : reimbursements.filter(x => x.status === 'settled');
 
-function renderSettings() {
-  renderProfile();
-  $('categoryList').innerHTML = categories.length ? categories.map(c => `
-  <div class="txn-item">
-  <div class="ico-circle">${iconHTML(c.emoji, '📂')}</div>
-  <div class="txn-meta"><div class="txn-cat">${c.name}</div><div class="txn-sub">${c.type}</div></div>
-  ${!c.is_default ? `<button class="btn-danger" style="margin-left:auto" onclick="deleteCat('${c.id}')">✕</button>` : ''}
-  </div>`).join('') : '<div class="empty-state">No categories yet.</div>';
-}
+  // Running totals
+  const totalAmt = reimbursements.reduce((s, x) => s + Number(x.total_amount), 0);
+  const dueAmt   = reimbursements.filter(x => x.status !== 'settled').reduce((s, x) => s + (Number(x.total_amount) - Number(x.paid_back || 0)), 0);
 
-window.editAccount = id => {
-  const a = accounts.find(x => x.id===id); if (!a) return;
-  $('accountId').value = a.id;
-  $('accountIcon').value = a.emoji || '💳';
-  $('accountName').value = a.name;
-  $('accountType').value = a.type;
-  $('accountBalance').value = a.opening_balance || 0;
-  $('accountModalTitle').textContent = 'Edit Account';
-  openModal('accountModal');
-};
-window.deleteAccount = async id => {
-  if (!confirm('Delete this account?')) return;
-  const { error } = await supabase.from('accounts').delete().eq('id', id);
-  if (error) return toast('❌ ' + error.message);
-  await loadAll(); render(); toast('🗑️ Deleted');
-};
-window.editTransaction = id => {
-  const t = transactions.find(x => x.id===id); if (!t) return;
-  currentTxnType = t.is_transfer ? 'transfer' : t.type;
-  $('txnId').value = t.id;
-  $('txnAmount').value = t.amount;
-  $('txnDate').value = t.date;
-  $('txnRemarks').value = t.remarks || '';
-  document.querySelectorAll('#txnTypeTabs .type-tab').forEach(b => b.classList.toggle('active', b.dataset.type===currentTxnType));
-  $('txnTransferToField').style.display = currentTxnType==='transfer' ? '' : 'none';
-  $('txnCategoryField').style.display = currentTxnType==='transfer' ? 'none' : '';
-  accSelect('txnAccount'); accSelect('txnTransferTo', 'Transfer to…');
-  catSelect('txnCategory', currentTxnType==='transfer' ? 'expense' : currentTxnType);
-  $('txnAccount').value = t.account_id || '';
-  $('txnTransferTo').value = t.transfer_to_account_id || '';
-  $('txnCategory').value = t.category_id || '';
-  $('txnModalTitle').textContent = 'Edit Transaction';
-  openModal('txnModal');
-};
-window.deleteTransaction = async id => {
-  if (!confirm('Delete this transaction?')) return;
-  const { error } = await supabase.from('transactions').delete().eq('id', id);
-  if (error) return toast('❌ ' + error.message);
-  await loadAll(); render(); toast('🗑️ Deleted');
-};
-window.openPayback = id => {
-  $('paybackReimburseId').value = id;
-  $('paybackAmount').value = '';
-  $('paybackDate').value = today();
-  $('paybackRemarks').value = '';
-  accSelect('paybackAccount', 'Received into…');
-  openModal('paybackModal');
-};
-window.deleteReimburse = async id => {
-  if (!confirm('Delete?')) return;
-  await supabase.from('reimbursements').delete().eq('id', id);
-  await loadAll(); render(); toast('🗑️ Deleted');
-};
-window.deleteCat = async id => {
-  if (!confirm('Delete?')) return;
-  await supabase.from('categories').delete().eq('id', id);
-  await loadAll(); render(); toast('🗑️ Deleted');
-};
-
-function expectedFields(k) {
-  if (k==='transactions') return ['date','amount','type','category','account','note'];
-  if (k==='transfers') return ['date','amount','from_account','to_account','note'];
-  return ['date','original_amount','reimbursed','pending','status','category','paid_from_account','refund_to_account','note','Person_name'];
-}
-
-/**
- * Robust CSV parser
- */
-function parseCsv(text, delim) {
-  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
-  const rows = [];
-
-  for (let li = 0; li < lines.length; li++) {
-    const line = lines[li];
-    if (line.trim() === '') continue;
-
-    const row = [];
-    let cell = '';
-    let inQ = false;
-    let i = 0;
-
-    while (i < line.length) {
-      const ch = line[i];
-      const nx = line[i + 1];
-
-      if (ch === '"') {
-        if (inQ && nx === '"') { cell += '"'; i += 2; }
-        else if (inQ) { inQ = false; i++; }
-        else { inQ = true; i++; }
-      } else if (ch === delim && !inQ) {
-        row.push(cell.trim()); cell = ''; i++;
-      } else {
-        cell += ch; i++;
-      }
-    }
-
-    row.push(cell.trim());
-    inQ = false;
-    if (row.some(v => v !== '')) rows.push(row);
+  // Group by date (use created_at date)
+  const groups = {};
+  for (const x of filtered) {
+    const dateKey = (x.created_at || '').slice(0, 10) || 'Unknown';
+    if (!groups[dateKey]) groups[dateKey] = [];
+    groups[dateKey].push(x);
   }
+  const sortedDates = Object.keys(groups).sort((a, b) => b.localeCompare(a));
 
-  return rows;
-}
-
-function buildMappingGrid() {
-  const box = $('mappingGrid'); if (!box) return;
-  const fields = expectedFields(currentImportKind);
-  box.innerHTML = '';
-  fields.forEach(f => {
-    const d = document.createElement('div'); d.className = 'mapping-card';
-    d.innerHTML = `<label>${f}</label><select class="input import-map" data-target="${f}"><option value="">-- ignore --</option>${importHeaders.map(h=>`<option value="${h}">${h}</option>`).join('')}</select>`;
-    box.appendChild(d);
-  });
-  autoMap();
-}
-
-function autoMap() {
-  document.querySelectorAll('.import-map').forEach(sel => {
-    const tgt = sel.dataset.target.toLowerCase();
-    const m = importHeaders.find(h => h.trim().toLowerCase()===tgt) || importHeaders.find(h => h.trim().toLowerCase().includes(tgt));
-    if (m) sel.value = m;
-  });
-}
-
-function previewTable(rows) {
-  const head = importHeaders;
-  const body = rows.slice(0, 500).map(r => `<tr>${head.map((_,i) => `<td>${String(r[i]||'').replace(/</g,'&lt;')}</td>`).join('')}</tr>`).join('');
-  return `<table class="mini-preview-table"><thead><tr>${head.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
-}
-
-function getMapping() {
-  const m = {};
-  document.querySelectorAll('.import-map').forEach(s => { if (s.value) m[s.dataset.target] = s.value; });
-  return m;
-}
-
-async function doPreview() {
-  const file = $('importFile')?.files[0]; if (!file) return toast('Choose a CSV file');
-  const raw = $('importDelimiter').value;
-  const delim = raw === '\\t' ? '\t' : raw;
-  const skipS = Number($('importSkipStart')?.value||0);
-  const skipE = Number($('importSkipEnd')?.value||0);
-  const hasH = $('importHasHeader')?.checked ?? true;
-  const text = await file.text();
-  let rows = parseCsv(text, delim).slice(skipS);
-  if (skipE > 0) rows = rows.slice(0, Math.max(0, rows.length - skipE));
-  if (!rows.length) { $('importPreview').textContent = 'No rows found.'; return; }
-  importHeaders = (hasH ? rows[0] : rows[0].map((_,i) => `Column ${i+1}`)).map(h => String(h).trim());
-  importRows = hasH ? rows.slice(1) : rows;
-  $('importPreview').innerHTML = previewTable(importRows);
-  buildMappingGrid();
-  toast(`Preview: ${importRows.length} rows`);
-}
-
-async function runImport() {
-  if (!importRows.length) return toast('Preview CSV first');
-  const mp = getMapping();
-  const merge = $('importMergeExisting')?.checked ?? true;
-  const clearBef = $('importClearBefore')?.checked ?? false;
-  const flip = $('importFlipAmount')?.checked ?? false;
-  const useType = $('importUseTypeColumn')?.checked ?? true;
-  if (clearBef && currentImportKind !== 'reimburse') await supabase.from('transactions').delete().eq('user_id', USER.id);
-  if (clearBef && currentImportKind === 'reimburse') await supabase.from('reimbursements').delete().eq('user_id', USER.id);
-  const existing = new Set(transactions.map(dedupeKey));
-  let inserted=0, skippedNoAmount=0;
-  const skippedAccNames = [];
-  const skippedDupeRows = [];
-
-  if (currentImportKind === 'transactions') {
-    const payload = [];
-    for (const row of importRows) {
-      const obj = Object.fromEntries(importHeaders.map((h,i) => [h, String(row[i]??'').trim()]));
-      let amount = Math.abs(Number(obj[mp.amount]||0)); if (flip) amount = Math.abs(-amount);
-      if (!amount) { skippedNoAmount++; continue; }
-      let type = 'expense';
-      if (useType && mp.type) { const raw2 = norm(obj[mp.type]); type = (raw2.includes('income')||raw2.includes('inflow')) ? 'income' : 'expense'; }
-      const acc = findAccount(obj[mp.account]);
-      if (!acc) { skippedAccNames.push(obj[mp.account] || '(empty)'); continue; }
-      const cat = findCategory(obj[mp.category], type);
-      const item = { user_id:USER.id, date:parseDate(obj[mp.date]), amount, type, category_id:cat?.id||null, account_id:acc.id, remarks:obj[mp.note]||'', is_transfer:false, transfer_to_account_id:null };
-      const fp = dedupeKey(item);
-      if (merge && existing.has(fp)) {
-        skippedDupeRows.push({ date: item.date, amount: item.amount, type: item.type, account: acc.name, remarks: item.remarks });
-        continue;
-      }
-      existing.add(fp); payload.push(item);
-    }
-    if (payload.length) { const {error} = await supabase.from('transactions').insert(payload); if (error) return toast('❌ '+error.message); inserted = payload.length; }
-  }
-
-  if (currentImportKind === 'transfers') {
-    const payload = [];
-    for (const row of importRows) {
-      const obj = Object.fromEntries(importHeaders.map((h,i) => [h, String(row[i]??'').trim()]));
-      const amount = Math.abs(Number(obj[mp.amount]||0)); if (!amount) { skippedNoAmount++; continue; }
-      const from = findAccount(obj[mp.from_account]), to = findAccount(obj[mp.to_account]);
-      if (!from) { skippedAccNames.push(obj[mp.from_account] || '(empty from)'); continue; }
-      if (!to) { skippedAccNames.push(obj[mp.to_account] || '(empty to)'); continue; }
-      if (from.id===to.id) { skippedNoAmount++; continue; }
-      const item = { user_id:USER.id, date:parseDate(obj[mp.date]), amount, type:'transfer', category_id:null, account_id:from.id, remarks:obj[mp.note]||'', is_transfer:true, transfer_to_account_id:to.id };
-      const fp = dedupeKey(item);
-      if (merge && existing.has(fp)) {
-        skippedDupeRows.push({ date: item.date, amount: item.amount, type: 'transfer', account: `${from.name} → ${to.name}`, remarks: item.remarks });
-        continue;
-      }
-      existing.add(fp); payload.push(item);
-    }
-    if (payload.length) { const {error} = await supabase.from('transactions').insert(payload); if (error) return toast('❌ '+error.message); inserted = payload.length; }
-  }
-
-  if (currentImportKind === 'reimburse') {
-    for (const row of importRows) {
-      const obj = Object.fromEntries(importHeaders.map((h,i) => [h, String(row[i]??'').trim()]));
-      const person = (obj[mp.Person_name]||obj[mp.person_name]||'').trim();
-      const total = Number(obj[mp.original_amount]||0);
-      const paid = Number(obj[mp.reimbursed]||0);
-      if (!person || !total) { skippedNoAmount++; continue; }
-      const pending = Number(obj[mp.pending] || Math.max(0, total-paid));
-      const status = pending<=0 ? 'settled' : paid>0 ? 'partial' : 'pending';
-      const {data:rb, error} = await supabase.from('reimbursements').insert({user_id:USER.id,person_name:person,total_amount:total,paid_back:paid,status}).select().single();
-      if (error) { skippedNoAmount++; continue; }
-      inserted++;
-      const accFrom = findAccount(obj[mp.paid_from_account]);
-      const accTo = findAccount(obj[mp.refund_to_account]);
-      const note = obj[mp.note]||'';
-      if (accFrom) await supabase.from('transactions').insert({user_id:USER.id,account_id:accFrom.id,amount:total,type:'expense',date:parseDate(obj[mp.date]),remarks:note||`Reimburse: ${person}`,is_transfer:false,reimburse_id:rb.id});
-      if (paid>0 && accTo) await supabase.from('transactions').insert({user_id:USER.id,account_id:accTo.id,amount:paid,type:'income',date:parseDate(obj[mp.date]),remarks:`Payback from ${person}`,is_transfer:false});
-    }
-  }
-
-  await loadAll(); render(); closeModal('importModal');
-  const totalSkipped = skippedAccNames.length + skippedDupeRows.length + skippedNoAmount;
-  toast(`✅ Imported ${inserted}${totalSkipped ? `, skipped ${totalSkipped}` : ''}`);
-  if (skippedAccNames.length || skippedDupeRows.length || skippedNoAmount) {
-    showSkippedPopup(skippedAccNames, skippedDupeRows, skippedNoAmount);
-  }
-}
-
-(async () => {
-  const saved = localStorage.getItem('flowledger-theme') || 'light';
-  document.documentElement.setAttribute('data-theme', saved);
-  $('themeBtn').onclick = () => {
-    const next = document.documentElement.getAttribute('data-theme')==='dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('flowledger-theme', next);
-  };
-
-  $('menuBtn').onclick = () => document.body.classList.toggle('sidebar-open');
-  $('sidebarOverlay').onclick = () => document.body.classList.remove('sidebar-open');
-
-  document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => closeModal(b.dataset.close));
-  document.querySelectorAll('.modal-backdrop').forEach(m => m.onclick = e => { if (e.target===m) closeModal(m.id); });
-
-  window.addEventListener('hashchange', render);
-
-  $('logoutBtn').onclick = async () => { await supabase.auth.signOut(); location.href='./login.html'; };
-
-  $('saveProfileBtn').onclick = async () => {
-    const name = $('settingName').value.trim(), currency = $('settingCurrency').value;
-    if (!name) return toast('Enter a name');
-    const { error } = await supabase.from('profiles').upsert({id:USER.id,name,currency},{onConflict:'id'});
-    if (error) return toast('❌ '+error.message);
-    profile = {...profile, name, currency}; renderProfile(); toast('✅ Profile saved');
-  };
-
-  $('addAccountBtn').onclick = () => {
-    $('accountId').value=''; $('accountIcon').value=''; $('accountName').value=''; $('accountType').value='bank'; $('accountBalance').value='0';
-    $('accountModalTitle').textContent='New Account'; openModal('accountModal');
-  };
-  $('saveAccountBtn').onclick = async () => {
-    const id = $('accountId').value;
-    const row = { user_id:USER.id, emoji:$('accountIcon').value.trim()||'', name:$('accountName').value.trim(), type:$('accountType').value, opening_balance:parseFloat($('accountBalance').value)||0 };
-    if (!row.name) return toast('Enter account name');
-    const q = id ? supabase.from('accounts').update(row).eq('id',id) : supabase.from('accounts').insert(row);
-    const { error } = await q; if (error) return toast('❌ '+error.message);
-    closeModal('accountModal'); await loadAll(); render(); toast(id ? '✅ Updated' : '✅ Account added');
-  };
-
-  function openTxnModal() {
-    $('txnId').value=''; $('txnAmount').value=''; $('txnRemarks').value=''; $('txnDate').value=today(); currentTxnType='expense';
-    document.querySelectorAll('#txnTypeTabs .type-tab').forEach(b => b.classList.toggle('active', b.dataset.type==='expense'));
-    $('txnTransferToField').style.display='none'; $('txnCategoryField').style.display='';
-    accSelect('txnAccount'); accSelect('txnTransferTo','Transfer to…'); catSelect('txnCategory','expense');
-    $('txnModalTitle').textContent='Add Transaction'; openModal('txnModal');
-  }
-
-  $('addTxnBtn').onclick = openTxnModal;
-  $('quickAddBtn').onclick = openTxnModal;
-  $('fabBtn').onclick = openTxnModal;
-
-  document.querySelectorAll('#txnTypeTabs .type-tab').forEach(btn => btn.onclick = () => {
-    document.querySelectorAll('#txnTypeTabs .type-tab').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active'); currentTxnType = btn.dataset.type;
-    $('txnTransferToField').style.display = currentTxnType==='transfer' ? '' : 'none';
-    $('txnCategoryField').style.display = currentTxnType==='transfer' ? 'none' : '';
-    if (currentTxnType !== 'transfer') catSelect('txnCategory', currentTxnType);
-  });
-
-    $('saveTxnBtn').onclick = async () => {
-      const id = $('txnId').value;
-      const amount = parseFloat($('txnAmount').value);
-      const account_id = $('txnAccount').value;
-      const date = $('txnDate').value;
-      const remarks = $('txnRemarks').value.trim();
-      const category_id = $('txnCategory').value || null;
-      const transfer_to = $('txnTransferTo').value || null;
-      if (!amount || amount<=0) return toast('Enter valid amount');
-      if (!account_id) return toast('Select account');
-      if (!date) return toast('Pick a date');
-      if (currentTxnType==='transfer' && !transfer_to) return toast('Select destination account');
-      if (currentTxnType==='transfer' && transfer_to===account_id) return toast('Source and destination cannot match');
-      const row = { user_id:USER.id, account_id, category_id:currentTxnType==='transfer'?null:category_id, amount, date, remarks, type:currentTxnType, is_transfer:currentTxnType==='transfer', transfer_to_account_id:currentTxnType==='transfer'?transfer_to:null };
-      const q = id ? supabase.from('transactions').update(row).eq('id',id) : supabase.from('transactions').insert(row);
-      const { error } = await q; if (error) return toast('❌ '+error.message);
-      closeModal('txnModal'); await loadAll(); render(); toast(id ? '✅ Updated' : '✅ Saved');
-    };
-
-    ['txnFilterType','txnFilterAccount','txnFilterMonth'].forEach(id => $(id)?.addEventListener('change', renderTransactions));
-
-    $('addReimburseBtn').onclick = () => {
-      $('reimbPersonName').value=''; $('reimbAmount').value=''; $('reimbRemarks').value=''; $('reimbDate').value=today();
-      accSelect('reimbAccount'); openModal('reimburseModal');
-    };
-    $('saveReimburseBtn').onclick = async () => {
-      const person_name = $('reimbPersonName').value.trim();
-      const total_amount = parseFloat($('reimbAmount').value);
-      const account_id = $('reimbAccount').value;
-      const date = $('reimbDate').value;
-      const remarks = $('reimbRemarks').value.trim();
-      if (!person_name || !total_amount || !account_id) return toast('Fill all fields');
-      const {data:rb, error} = await supabase.from('reimbursements').insert({user_id:USER.id,person_name,total_amount,paid_back:0,status:'pending'}).select().single();
-      if (error) return toast('❌ '+error.message);
-      await supabase.from('transactions').insert({user_id:USER.id,account_id,amount:total_amount,type:'expense',date,remarks:remarks||`Reimburse: ${person_name}`,is_transfer:false,reimburse_id:rb.id});
-      closeModal('reimburseModal'); await loadAll(); render(); toast('✅ Added');
-    };
-
-    $('savePaybackBtn').onclick = async () => {
-      const id = $('paybackReimburseId').value;
-      const amount = parseFloat($('paybackAmount').value);
-      const account_id = $('paybackAccount').value;
-      const date = $('paybackDate').value;
-      const remarks = $('paybackRemarks').value.trim();
-      if (!amount || !account_id) return toast('Fill all fields');
-      const rb = reimbursements.find(r => r.id===id);
-      const newPaid = Number(rb.paid_back||0) + amount;
-      const status = newPaid >= Number(rb.total_amount) ? 'settled' : 'partial';
-      await supabase.from('reimbursements').update({paid_back:newPaid,status}).eq('id',id);
-      await supabase.from('transactions').insert({user_id:USER.id,account_id,amount,type:'income',date,remarks:remarks||`Payback from ${rb.person_name}`,is_transfer:false});
-      closeModal('paybackModal'); await loadAll(); render(); toast('✅ Payback recorded');
-    };
-
-    $('addCategoryBtn').onclick = () => {
-      $('catIcon').value=''; $('catName').value=''; currentCatType='expense';
-      document.querySelectorAll('[data-ctype]').forEach(b => b.classList.toggle('active', b.dataset.ctype==='expense'));
-      openModal('categoryModal');
-    };
-    document.querySelectorAll('[data-ctype]').forEach(btn => btn.onclick = () => {
-      document.querySelectorAll('[data-ctype]').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active'); currentCatType = btn.dataset.ctype;
-    });
-    $('saveCategoryBtn').onclick = async () => {
-      const name = $('catName').value.trim(); if (!name) return toast('Enter category name');
-      const {error} = await supabase.from('categories').insert({user_id:USER.id,name,emoji:$('catIcon').value.trim()||'',type:currentCatType,color:'#01696f',is_default:false});
-      if (error) return toast('❌ '+error.message);
-      closeModal('categoryModal'); await loadAll(); render(); toast('✅ Category added');
-    };
-
-    $('addLedgerPersonBtn').onclick = () => toast('Ledger coming soon');
-    $('addRecurringBtn').onclick = () => toast('Recurring coming soon');
-
-    $('exportCsvBtn').onclick = () => {
-      const header = 'Date,Type,Amount,Category,Account,Remarks';
-      const rows = transactions.map(t => {
-        const cat = categories.find(c=>c.id===t.category_id), acc = accounts.find(a=>a.id===t.account_id);
-        return [t.date, t.type, t.amount, cat?.name||'', acc?.name||'', JSON.stringify(t.remarks||'')].join(',');
-      });
-      const csv = [header, ...rows].join('\n');
-      const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download = `flowledger_${today()}.csv`; a.click();
-      toast('✅ Exported');
-    };
-
-    document.querySelectorAll('[data-import-kind]').forEach(b => b.onclick = () => {
-      document.querySelectorAll('[data-import-kind]').forEach(x => x.classList.remove('active'));
-      b.classList.add('active'); currentImportKind = b.dataset.importKind; buildMappingGrid();
-    });
-
-    $('openTxnImportBtn').onclick = () => {
-      currentImportKind='transactions'; importRows=[]; importHeaders=[]; $('importPreview').textContent='Upload a CSV to preview rows.'; $('mappingGrid').innerHTML='';
-      document.querySelectorAll('[data-import-kind]').forEach(b => b.classList.toggle('active', b.dataset.importKind==='transactions'));
-      openModal('importModal');
-    };
-    $('openReimburseImportBtn').onclick = () => {
-      currentImportKind='reimburse'; importRows=[]; importHeaders=[]; $('importPreview').textContent='Upload a CSV to preview rows.'; $('mappingGrid').innerHTML='';
-      document.querySelectorAll('[data-import-kind]').forEach(b => b.classList.toggle('active', b.dataset.importKind==='reimburse'));
-      openModal('importModal');
-    };
-    $('importFile').addEventListener('change', doPreview);
-    $('previewImportBtn').onclick = doPreview;
-    $('runImportBtn').onclick = runImport;
-
-    document.querySelectorAll('[data-icon-group]').forEach(b => b.onclick = () => {
-      document.querySelectorAll('[data-icon-group]').forEach(x => x.classList.remove('active'));
-      b.classList.add('active'); renderIconGrid();
-    });
-    $('iconSearch').addEventListener('input', renderIconGrid);
-
-    await loadAll();
-    renderProfile();
-    accSelect('txnAccount');
-    accSelect('txnTransferTo');
-    catSelect('txnCategory','expense');
-    render();
-})();
+  let html = `
+  <div class="reimb-tabs">
+    <button class="reimb-tab ${currentReimbTab === 'reimburse' ? 'active' : ''}" onclick="switchReimbTab('reimburse')">Reimburse</button>
+    <button class="reimb-tab ${currentReimbTab === 'refunded' ? 'active' : ''}" onclick="switchReimbTab('refunded')">Refunded</button>
+  </div>
+  <div class="reimb-totals">
+    <span class="tot-t

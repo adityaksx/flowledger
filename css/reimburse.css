@@ -1,84 +1,167 @@
-/* ── Reimburse timeline (Meow-style) ──────────────────── */
+/* ── Meow Money Manager style — Reimburse Timeline ── */
 
-/* Wrapper replaces the flat .list */
-.reimb-timeline { display: flex; flex-direction: column; gap: 8px; }
-
-/* Each card */
-.reimb-card {
-  background: var(--surface);
-  border: 1.5px solid var(--border);
-  border-radius: 20px;
-  padding: 14px 16px;
-  box-shadow: var(--shadow);
+/* Sub-tab bar */
+.reimb-tabs {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  transition: box-shadow .18s;
+  gap: 8px;
+  margin-bottom: 20px;
+  background: var(--surface, #f3f2ee);
+  padding: 4px;
+  border-radius: 999px;
+  width: fit-content;
 }
-.reimb-card:hover { box-shadow: 0 12px 36px rgba(40,37,29,.14); }
+.reimb-tab {
+  padding: 7px 22px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted, #888);
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+}
+.reimb-tab.active {
+  background: var(--card, #fff);
+  color: var(--text, #1a1a1a);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+}
 
-/* Top row: avatar circle + name/sub + amount + badge */
-.reimb-card-top {
+/* Running totals row */
+.reimb-totals {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted, #888);
+}
+.reimb-totals .tot-total { color: var(--text, #222); }
+.reimb-totals .tot-due   { color: #ef4444; }
+
+/* Date group header — "Mar 06  Fri  +14.45  -0" style */
+.reimb-day-group { margin-bottom: 8px; }
+.reimb-day-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 2px 4px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #ef4444;
+}
+.reimb-day-header .day-dow {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted, #aaa);
+  background: var(--surface, #f3f2ee);
+  border-radius: 6px;
+  padding: 2px 7px;
+}
+.reimb-day-header .day-stats {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.reimb-day-header .day-stats .ds-in  { color: var(--text-muted, #aaa); }
+.reimb-day-header .day-stats .ds-out { color: #ef4444; }
+
+/* Vertical timeline line */
+.reimb-timeline-items {
+  position: relative;
+  padding-left: 24px;
+  border-left: 2px solid var(--border, #e5e5e5);
+  margin-bottom: 12px;
+}
+
+/* Single card row */
+.reimb-row {
   display: flex;
   align-items: center;
   gap: 12px;
+  background: var(--card, #fff);
+  border-radius: 16px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+  position: relative;
+  transition: transform 0.15s, box-shadow 0.15s;
+  cursor: pointer;
+}
+.reimb-row:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.12);
 }
 
-/* Colored icon bubble */
-.reimb-avatar {
+/* Timeline dot on the left edge */
+.reimb-row::before {
+  content: '';
+  position: absolute;
+  left: -31px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent, #01696f);
+  border: 2px solid var(--card, #fff);
+  box-shadow: 0 0 0 2px var(--accent, #01696f);
+}
+
+/* Category icon circle */
+.reimb-cat-icon {
   width: 48px;
   height: 48px;
-  border-radius: 16px;
-  background: var(--primary-hl);
-  display: grid;
-  place-items: center;
-  font-size: 22px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  color: var(--primary);
-  font-weight: 700;
+  font-size: 22px;
+  background: var(--surface, #f3f2ee);
 }
-[data-theme="dark"] .reimb-avatar { background: var(--surface3); }
+.reimb-cat-icon img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
 
-/* Pending = warm orange tint */
-.reimb-avatar.status-pending  { background: var(--orange-bg); color: var(--orange); }
-/* Partial = teal tint */
-.reimb-avatar.status-partial  { background: var(--primary-hl); color: var(--primary); }
-/* Settled = green tint */
-.reimb-avatar.status-settled  { background: var(--green-bg); color: var(--green); }
-
-/* Name + meta text */
-.reimb-info { flex: 1; min-width: 0; }
-.reimb-name {
+/* Middle info */
+.reimb-row-info {
+  flex: 1;
+  min-width: 0;
+}
+.reimb-row-title {
   font-size: 15px;
   font-weight: 700;
-  color: var(--text);
-  line-height: 1.2;
+  color: var(--text, #1a1a1a);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.reimb-meta-row {
+.reimb-row-sub {
+  font-size: 12px;
+  color: var(--text-muted, #888);
+  margin-top: 2px;
   display: flex;
-  align-items: center;
   gap: 6px;
-  margin-top: 3px;
   flex-wrap: wrap;
+  align-items: center;
 }
-.reimb-chip {
+.reimb-chip-sm {
+  background: var(--surface, #f3f2ee);
+  border-radius: 999px;
+  padding: 1px 8px;
   font-size: 11px;
   font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 99px;
-  background: var(--surface3);
-  color: var(--muted);
-  white-space: nowrap;
 }
-.reimb-chip.chip-due   { background: var(--red-bg);    color: var(--red); }
-.reimb-chip.chip-paid  { background: var(--green-bg);  color: var(--green); }
-.reimb-chip.chip-total { background: var(--surface3);  color: var(--muted); }
+.reimb-chip-sm.chip-due  { background: #fef2f2; color: #ef4444; }
+.reimb-chip-sm.chip-paid { background: #f0fdf4; color: #16a34a; }
 
-/* Amount on the right */
-.reimb-amount-col {
+/* Right amount column */
+.reimb-row-right {
   text-align: right;
   flex-shrink: 0;
   display: flex;
@@ -86,57 +169,62 @@
   align-items: flex-end;
   gap: 4px;
 }
-.reimb-amount {
-  font-size: 18px;
+.reimb-row-amt {
+  font-size: 17px;
   font-weight: 800;
   line-height: 1;
 }
-.reimb-amount.amount-pending { color: var(--red); }
-.reimb-amount.amount-partial  { color: var(--orange); }
-.reimb-amount.amount-settled  { color: var(--green); }
+.reimb-row-amt.amt-pending { color: #ef4444; }
+.reimb-row-amt.amt-partial  { color: #f97316; }
+.reimb-row-amt.amt-settled  { color: #16a34a; }
 
-/* Badge pill */
-.reimb-badge {
-  font-size: 11px;
+.reimb-badge-sm {
+  font-size: 10px;
   font-weight: 700;
-  padding: 3px 10px;
-  border-radius: 99px;
+  border-radius: 999px;
+  padding: 1px 8px;
   text-transform: capitalize;
-  letter-spacing: .02em;
+  letter-spacing: 0.03em;
 }
-.reimb-badge.status-settled { background: var(--green-bg);  color: var(--green); }
-.reimb-badge.status-partial  { background: var(--orange-bg); color: var(--orange); }
-.reimb-badge.status-pending  { background: var(--red-bg);    color: var(--red); }
+.reimb-badge-sm.badge-pending { background: #fef2f2; color: #ef4444; }
+.reimb-badge-sm.badge-partial  { background: #fff7ed; color: #f97316; }
+.reimb-badge-sm.badge-settled  { background: #f0fdf4; color: #16a34a; }
 
-/* Progress bar */
-.reimb-progress-wrap {
-  height: 6px;
-  border-radius: 99px;
-  background: var(--surface3);
-  overflow: hidden;
+/* Row action buttons (shown on hover) */
+.reimb-row-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border, #f0f0f0);
+  width: 100%;
 }
-.reimb-progress-fill {
+.reimb-row-wrap {
+  flex-direction: column;
+  align-items: stretch;
+}
+.reimb-row-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+/* Progress bar (thin, inside card at bottom) */
+.reimb-mini-bar {
+  height: 3px;
+  border-radius: 99px;
+  background: var(--border, #e5e5e5);
+  margin-top: 6px;
+  overflow: hidden;
+  width: 100%;
+}
+.reimb-mini-bar-fill {
   height: 100%;
   border-radius: 99px;
-  background: var(--primary);
-  transition: width .45s cubic-bezier(.4,0,.2,1);
+  background: var(--accent, #01696f);
+  transition: width 0.4s;
 }
-.reimb-card.status-settled .reimb-progress-fill { background: var(--green); }
-.reimb-card.status-pending  .reimb-progress-fill { background: var(--red); }
-
-/* Remarks row */
-.reimb-remarks {
-  font-size: 12px;
-  color: var(--muted);
-  padding: 0 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Action buttons row */
-.reimb-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
+.status-settled .reimb-mini-bar-fill { background: #16a34a; }
+.status-partial  .reimb-mini-bar-fill { background: #f97316; }
+.status-pending  .reimb-mini-bar-fill { background: #ef4444; }
