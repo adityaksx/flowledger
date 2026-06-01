@@ -107,26 +107,46 @@ function toast(msg) {
 function openModal(id)  { $(id).classList.remove('hidden'); }
 function closeModal(id) { $(id).classList.add('hidden'); }
 
-// Show a detailed popup listing skipped account names after import
-function showSkippedPopup(skippedAccounts, skippedDupe, skippedNoAmount) {
+/**
+ * Show skipped-rows popup after import.
+ * @param {string[]} skippedAccounts  - account names that weren't found
+ * @param {Array<{date,amount,type,account,remarks}>} skippedDupeRows - full detail of each duplicate row
+ * @param {number} skippedNoAmount    - count of rows with zero/missing amount
+ */
+function showSkippedPopup(skippedAccounts, skippedDupeRows, skippedNoAmount) {
   let existing = document.getElementById('skippedPopup');
   if (existing) existing.remove();
 
   const lines = [];
+
   if (skippedAccounts.length) {
     const unique = [...new Set(skippedAccounts)];
-    lines.push(`<b>⚠️ ${skippedAccounts.length} rows skipped — account not registered:</b>`);
+    lines.push(`<b>⚠️ ${skippedAccounts.length} row${skippedAccounts.length>1?'s':''} skipped — account not registered:</b>`);
     lines.push(`<ul style="margin:8px 0 0 0;padding-left:18px;text-align:left">${unique.map(a=>`<li>${a}</li>`).join('')}</ul>`);
     lines.push(`<div style="margin-top:6px;font-size:12px;opacity:0.7">Add these accounts in Settings → Accounts, then re-import.</div>`);
   }
-  if (skippedDupe) lines.push(`<div style="margin-top:6px">🔁 ${skippedDupe} duplicate rows skipped.</div>`);
-  if (skippedNoAmount) lines.push(`<div style="margin-top:4px">🚫 ${skippedNoAmount} rows skipped (zero/missing amount).</div>`);
+
+  if (skippedDupeRows.length) {
+    lines.push(`<b style="display:block;margin-top:${skippedAccounts.length?'14px':'0'}">🔁 ${skippedDupeRows.length} duplicate row${skippedDupeRows.length>1?'s':''} skipped:</b>`);
+    const rowsHtml = skippedDupeRows.map(r => {
+      const sign = r.type === 'income' ? '+' : r.type === 'transfer' ? '' : '-';
+      const color = r.type === 'income' ? '#22c55e' : r.type === 'transfer' ? '#f97316' : '#ef4444';
+      const remark = r.remarks ? ` · ${r.remarks}` : '';
+      return `<li style="margin-bottom:4px"><span style="color:${color};font-weight:700">${sign}₹${r.amount}</span> &nbsp;<span style="opacity:0.8">${r.date}</span> &nbsp;<span>${r.account}</span>${remark ? `<br><span style="font-size:11px;opacity:0.6;padding-left:2px">${remark}</span>` : ''}</li>`;
+    }).join('');
+    lines.push(`<ul style="margin:8px 0 0 0;padding-left:18px;text-align:left;font-size:13px">${rowsHtml}</ul>`);
+    lines.push(`<div style="margin-top:6px;font-size:12px;opacity:0.6">These already exist in your transactions and were not re-added.</div>`);
+  }
+
+  if (skippedNoAmount) {
+    lines.push(`<div style="margin-top:${skippedDupeRows.length||skippedAccounts.length?'10px':'0'}">🚫 ${skippedNoAmount} row${skippedNoAmount>1?'s':''} skipped (zero/missing amount).</div>`);
+  }
 
   if (!lines.length) return;
 
   const popup = document.createElement('div');
   popup.id = 'skippedPopup';
-  popup.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card);color:var(--text);padding:24px 28px;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,0.35);z-index:10000;max-width:360px;width:90%;text-align:center;font-size:14px;line-height:1.6';
+  popup.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card);color:var(--text);padding:24px 28px;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,0.35);z-index:10000;max-width:400px;width:92%;text-align:center;font-size:14px;line-height:1.6;max-height:80vh;overflow-y:auto';
   popup.innerHTML = lines.join('') + `<br><button onclick="document.getElementById('skippedPopup').remove()" style="margin-top:16px;padding:8px 24px;border-radius:999px;border:none;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;font-size:14px">OK</button>`;
   document.body.appendChild(popup);
 }
@@ -445,11 +465,9 @@ function expectedFields(k) {
  * Robust CSV parser that handles:
  * 1. Properly quoted cells (RFC 4180)
  * 2. Unclosed quotes at end of line — force-closes the quote and ends the row
- *    (fixes rows like:  2026-04-20,73,Income,Profit,Slice SFB,"profit from Aditya Birla psu )
  * 3. Tabs or commas as delimiter
  */
 function parseCsv(text, delim) {
-  // Normalise line endings to \n
   const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
   const rows = [];
 
@@ -467,36 +485,18 @@ function parseCsv(text, delim) {
       const nx = line[i + 1];
 
       if (ch === '"') {
-        if (inQ && nx === '"') {
-          // Escaped quote inside quoted cell
-          cell += '"';
-          i += 2;
-        } else if (inQ) {
-          // Closing quote
-          inQ = false;
-          i++;
-        } else {
-          // Opening quote
-          inQ = true;
-          i++;
-        }
+        if (inQ && nx === '"') { cell += '"'; i += 2; }
+        else if (inQ) { inQ = false; i++; }
+        else { inQ = true; i++; }
       } else if (ch === delim && !inQ) {
-        row.push(cell.trim());
-        cell = '';
-        i++;
+        row.push(cell.trim()); cell = ''; i++;
       } else {
-        cell += ch;
-        i++;
+        cell += ch; i++;
       }
     }
 
-    // End of line:
-    // If still inQ here, the quote was never closed (malformed CSV like "profit from psu )
-    // Force-close: treat whatever we accumulated as the cell value, trim it.
     row.push(cell.trim());
-    // Reset inQ regardless — never carry quote state across lines
-    inQ = false;
-
+    inQ = false; // never carry quote state across lines
     if (row.some(v => v !== '')) rows.push(row);
   }
 
@@ -563,8 +563,10 @@ async function runImport() {
   if (clearBef && currentImportKind !== 'reimburse') await supabase.from('transactions').delete().eq('user_id', USER.id);
   if (clearBef && currentImportKind === 'reimburse') await supabase.from('reimbursements').delete().eq('user_id', USER.id);
   const existing = new Set(transactions.map(dedupeKey));
-  let inserted=0, skippedDupe=0, skippedNoAmount=0;
+  let inserted=0, skippedNoAmount=0;
   const skippedAccNames = [];
+  // Now an array of objects instead of a plain count
+  const skippedDupeRows = [];
 
   if (currentImportKind === 'transactions') {
     const payload = [];
@@ -578,7 +580,11 @@ async function runImport() {
       if (!acc) { skippedAccNames.push(obj[mp.account] || '(empty)'); continue; }
       const cat = findCategory(obj[mp.category], type);
       const item = { user_id:USER.id, date:parseDate(obj[mp.date]), amount, type, category_id:cat?.id||null, account_id:acc.id, remarks:obj[mp.note]||'', is_transfer:false, transfer_to_account_id:null };
-      const fp = dedupeKey(item); if (merge && existing.has(fp)) { skippedDupe++; continue; }
+      const fp = dedupeKey(item);
+      if (merge && existing.has(fp)) {
+        skippedDupeRows.push({ date: item.date, amount: item.amount, type: item.type, account: acc.name, remarks: item.remarks });
+        continue;
+      }
       existing.add(fp); payload.push(item);
     }
     if (payload.length) { const {error} = await supabase.from('transactions').insert(payload); if (error) return toast('❌ '+error.message); inserted = payload.length; }
@@ -594,7 +600,11 @@ async function runImport() {
       if (!to) { skippedAccNames.push(obj[mp.to_account] || '(empty to)'); continue; }
       if (from.id===to.id) { skippedNoAmount++; continue; }
       const item = { user_id:USER.id, date:parseDate(obj[mp.date]), amount, type:'transfer', category_id:null, account_id:from.id, remarks:obj[mp.note]||'', is_transfer:true, transfer_to_account_id:to.id };
-      const fp = dedupeKey(item); if (merge && existing.has(fp)) { skippedDupe++; continue; }
+      const fp = dedupeKey(item);
+      if (merge && existing.has(fp)) {
+        skippedDupeRows.push({ date: item.date, amount: item.amount, type: 'transfer', account: `${from.name} → ${to.name}`, remarks: item.remarks });
+        continue;
+      }
       existing.add(fp); payload.push(item);
     }
     if (payload.length) { const {error} = await supabase.from('transactions').insert(payload); if (error) return toast('❌ '+error.message); inserted = payload.length; }
@@ -621,9 +631,10 @@ async function runImport() {
   }
 
   await loadAll(); render(); closeModal('importModal');
-  toast(`✅ Imported ${inserted}${skippedAccNames.length||skippedDupe||skippedNoAmount ? `, skipped ${skippedAccNames.length+skippedDupe+skippedNoAmount}` : ''}`);
-  if (skippedAccNames.length || skippedDupe || skippedNoAmount) {
-    showSkippedPopup(skippedAccNames, skippedDupe, skippedNoAmount);
+  const totalSkipped = skippedAccNames.length + skippedDupeRows.length + skippedNoAmount;
+  toast(`✅ Imported ${inserted}${totalSkipped ? `, skipped ${totalSkipped}` : ''}`);
+  if (skippedAccNames.length || skippedDupeRows.length || skippedNoAmount) {
+    showSkippedPopup(skippedAccNames, skippedDupeRows, skippedNoAmount);
   }
 }
 
