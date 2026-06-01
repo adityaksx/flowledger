@@ -93,8 +93,9 @@ function norm(s) { return String(s||'').trim().replace(/\s+/g,' ').toLowerCase()
 
 function iconHTML(val, fallback='💳') {
   if (!val) return fallback;
-  if (String(val).startsWith('http')) return `<img src="${val}" style="width:28px;height:28px;object-fit:contain;vertical-align:middle" />`;
-  return val;
+  if (String(val).startsWith('http'))
+    return `<img src="${val}" style="width:28px;height:28px;object-fit:contain;vertical-align:middle;display:block" />`;
+  return `<span style="font-size:22px;line-height:1">${val}</span>`;
 }
 
 function toast(msg) {
@@ -138,8 +139,8 @@ function showSkippedPopup(skippedAccounts, skippedDupeRows, skippedNoAmount) {
   if (!lines.length) return;
   const popup = document.createElement('div');
   popup.id = 'skippedPopup';
-  popup.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--card);color:var(--text);padding:24px 28px;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,0.35);z-index:10000;max-width:400px;width:92%;text-align:center;font-size:14px;line-height:1.6;max-height:80vh;overflow-y:auto';
-  popup.innerHTML = lines.join('<br>') + `<button onclick="document.getElementById('skippedPopup').remove()" style="margin-top:16px;padding:8px 24px;border-radius:999px;border:none;background:var(--accent);color:#fff;font-weight:700;cursor:pointer;font-size:14px">OK</button>`;
+  popup.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--surface);color:var(--text);padding:24px 28px;border-radius:16px;box-shadow:0 8px 40px rgba(0,0,0,0.35);z-index:10000;max-width:400px;width:92%;text-align:center;font-size:14px;line-height:1.6;max-height:80vh;overflow-y:auto';
+  popup.innerHTML = lines.join('<br>') + `<button onclick="document.getElementById('skippedPopup').remove()" style="margin-top:16px;padding:8px 24px;border-radius:999px;border:none;background:var(--primary);color:#fff;font-weight:700;cursor:pointer;font-size:14px">OK</button>`;
   document.body.appendChild(popup);
 }
 
@@ -185,8 +186,8 @@ function accountBalance(id) {
   let bal = Number(acc?.opening_balance || 0);
   for (const t of transactions) {
     if (t.is_transfer) {
-      if (t.account_id === id)               bal -= Number(t.amount);
-      if (t.transfer_to_account_id === id)   bal += Number(t.amount);
+      if (t.account_id === id)             bal -= Number(t.amount);
+      if (t.transfer_to_account_id === id) bal += Number(t.amount);
     } else if (t.account_id === id) {
       bal += t.type === 'income' ? Number(t.amount) : -Number(t.amount);
     }
@@ -203,13 +204,13 @@ function monthTxns() {
 function accSelect(id, label='Select account') {
   const s = $(id); if (!s) return;
   s.innerHTML = `<option value="">${label}</option>` +
-    accounts.map(a => `<option value="${a.id}">${iconHTML(a.emoji,'')} ${a.name}</option>`).join('');
+    accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
 }
 
 function catSelect(id, type='expense') {
   const s = $(id); if (!s) return;
   s.innerHTML = `<option value="">— No category —</option>` +
-    categories.filter(c => c.type===type).map(c => `<option value="${c.id}">${iconHTML(c.emoji,'')} ${c.name}</option>`).join('');
+    categories.filter(c => c.type===type).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
 }
 
 function findAccount(name) {
@@ -228,30 +229,36 @@ function findCategory(name, type) {
       || null;
 }
 
-// ── Transaction row HTML ──────────────────────────────────────────────────────
+// ── Transaction row HTML (uses CSS classes from app.css) ──────────────────────
 function txnHTML(t) {
-  const cat  = categories.find(c => c.id === t.category_id);
-  const acc  = accounts.find(a => a.id === t.account_id);
-  const to   = accounts.find(a => a.id === t.transfer_to_account_id);
-  const type = t.is_transfer ? 'transfer' : t.type;
-  const icon = t.is_transfer ? '🔁' : iconHTML(cat?.emoji, type==='income'?'💰':'💸');
-  const label= t.is_transfer ? `${acc?.name||''} → ${to?.name||''}` : (cat?.name || 'Uncategorised');
-  const sub  = [acc?.name, t.remarks].filter(Boolean).join(' · ');
-  const sign = t.is_transfer ? '⇄' : t.type==='income' ? '+' : '-';
-  const cls  = type==='income' ? 'green' : type==='expense' ? 'red' : 'orange';
-  return `<div class="txn-item">
-    <div class="ico-circle">${icon}</div>
+  const cat   = categories.find(c => c.id === t.category_id);
+  const acc   = accounts.find(a => a.id === t.account_id);
+  const to    = accounts.find(a => a.id === t.transfer_to_account_id);
+  const type  = t.is_transfer ? 'transfer' : t.type;
+  const emoji = t.is_transfer ? '🔁' : (cat?.emoji || (type==='income'?'💰':'💸'));
+  const label = t.is_transfer ? `${acc?.name||''} → ${to?.name||''}` : (cat?.name || 'Uncategorised');
+  const sub   = [acc?.name, t.remarks].filter(Boolean).join(' · ');
+  const sign  = t.is_transfer ? '⇄' : t.type==='income' ? '+' : '-';
+  const cls   = type==='income' ? 'green' : type==='expense' ? 'red' : 'orange';
+
+  // icon: URL → img tag, emoji → span
+  const iconEl = String(emoji).startsWith('http')
+    ? `<img src="${emoji}" style="width:26px;height:26px;object-fit:contain;display:block" />`
+    : `<span style="font-size:20px;line-height:1">${emoji}</span>`;
+
+  return `<div class="list-row">
+    <div class="txn-icon">${iconEl}</div>
     <div class="txn-meta">
-      <div class="txn-cat">${label}</div>
+      <div class="txn-label">${label}</div>
       <div class="txn-sub">${sub}</div>
     </div>
-    <div class="txn-right">
-      <div class="${cls}">${sign}${fmt(t.amount)}</div>
-      <div class="txn-sub">${t.date}</div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">
+      <strong class="${cls}" style="font-size:14px;font-weight:700">${sign}${fmt(t.amount)}</strong>
+      <span class="txn-sub">${t.date}</span>
     </div>
-    <div class="txn-actions">
-      <button class="btn-sm"     onclick="editTransaction('${t.id}')">Edit</button>
-      <button class="btn-danger" onclick="deleteTransaction('${t.id}')">Delete</button>
+    <div style="display:flex;gap:6px;margin-left:8px;flex-shrink:0">
+      <button class="btn-sm" onclick="editTransaction('${t.id}')">Edit</button>
+      <button class="btn-sm danger" onclick="deleteTransaction('${t.id}')">Del</button>
     </div>
   </div>`;
 }
@@ -265,12 +272,12 @@ function renderIconGrid() {
     (!q || x.l.toLowerCase().includes(q) || x.k.toLowerCase().includes(q))
   );
   $('iconGrid').innerHTML = items.map(x =>
-    `<button type="button" class="icon-chip" data-icon="${ICON_BASE+x.img}">
-      <img src="${ICON_BASE+x.img}" alt="${x.l}" style="width:36px;height:36px;object-fit:contain" />
-      <span class="lbl">${x.l}</span>
+    `<button type="button" class="icon-cell" data-icon="${ICON_BASE+x.img}">
+      <img src="${ICON_BASE+x.img}" alt="${x.l}" />
+      <span>${x.l}</span>
     </button>`
   ).join('');
-  $('iconGrid').querySelectorAll('.icon-chip').forEach(b => {
+  $('iconGrid').querySelectorAll('.icon-cell').forEach(b => {
     b.onclick = () => {
       if (iconTargetInput) $(iconTargetInput).value = b.dataset.icon;
       closeModal('iconPickerModal');
@@ -336,30 +343,43 @@ function renderDashboard() {
   $('dashRecentList').innerHTML = transactions.slice(0,8).map(txnHTML).join('')
     || '<div class="empty-state">No transactions yet.</div>';
 
-  $('dashAccountsList').innerHTML = accounts.map(a =>
-    `<div class="txn-item">
-      <div class="ico-circle">${iconHTML(a.emoji,'💳')}</div>
-      <div class="txn-meta"><div class="txn-cat">${a.name}</div><div class="txn-sub">${a.type}</div></div>
-      <div class="txn-right">${fmt(accountBalance(a.id))}</div>
-    </div>`
-  ).join('') || '<div class="empty-state">No accounts yet.</div>';
+  $('dashAccountsList').innerHTML = accounts.map(a => {
+    const iconEl = String(a.emoji||'').startsWith('http')
+      ? `<img src="${a.emoji}" style="width:26px;height:26px;object-fit:contain;display:block"/>`
+      : `<span style="font-size:20px">${a.emoji||'💳'}</span>`;
+    return `<div class="list-row">
+      <div class="txn-icon">${iconEl}</div>
+      <div class="txn-meta">
+        <div class="txn-label">${a.name}</div>
+        <div class="txn-sub">${a.type}</div>
+      </div>
+      <strong style="font-size:14px;font-weight:700;flex-shrink:0">${fmt(accountBalance(a.id))}</strong>
+    </div>`;
+  }).join('') || '<div class="empty-state">No accounts yet.</div>';
 }
 
 // ── Accounts ──────────────────────────────────────────────────────────────────
 function renderAccounts() {
   $('accountsList').innerHTML = accounts.length
-    ? accounts.map(a => `
-      <article class="account-card">
-        <div class="ico-circle">${iconHTML(a.emoji,'💳')}</div>
-        <div><strong>${a.name}</strong><div class="txn-sub">${a.type}</div></div>
-        <div style="margin-left:auto;text-align:right">
-          <div class="kpi-value">${fmt(accountBalance(a.id))}</div>
-        </div>
-        <div class="row-actions" style="margin-top:8px">
-          <button class="btn-sm"     onclick="editAccount('${a.id}')">Edit</button>
-          <button class="btn-danger" onclick="deleteAccount('${a.id}')">Delete</button>
-        </div>
-      </article>`).join('')
+    ? accounts.map(a => {
+        const iconEl = String(a.emoji||'').startsWith('http')
+          ? `<img src="${a.emoji}" style="width:30px;height:30px;object-fit:contain;display:block"/>`
+          : `<span class="acc-icon">${a.emoji||'💳'}</span>`;
+        return `<article class="account-card">
+          <div style="display:flex;align-items:center;gap:10px">
+            ${iconEl}
+            <div class="acc-info">
+              <strong>${a.name}</strong>
+              <span class="acc-type">${a.type}</span>
+            </div>
+          </div>
+          <div class="acc-balance">${fmt(accountBalance(a.id))}</div>
+          <div class="card-actions">
+            <button class="btn-sm" onclick="editAccount('${a.id}')">Edit</button>
+            <button class="btn-sm danger" onclick="deleteAccount('${a.id}')">Delete</button>
+          </div>
+        </article>`;
+      }).join('')
     : '<div class="empty-state">No accounts yet.</div>';
 }
 
@@ -414,7 +434,7 @@ function renderTransactions() {
   const tMon  = $('txnFilterMonth').value;
 
   $('txnFilterAccount').innerHTML = `<option value="">All accounts</option>` +
-    accounts.map(a => `<option value="${a.id}"${a.id===tAcc?' selected':''}>${iconHTML(a.emoji,'')} ${a.name}</option>`).join('');
+    accounts.map(a => `<option value="${a.id}"${a.id===tAcc?' selected':''}>${a.name}</option>`).join('');
 
   let list = [...transactions];
   if (tType) list = list.filter(t => t.is_transfer ? tType==='transfer' : t.type===tType);
@@ -482,11 +502,11 @@ document.querySelectorAll('#txnTypeTabs .type-tab').forEach(btn => {
 });
 
 $('saveTxnBtn').onclick = async () => {
-  const id         = $('txnId').value;
-  const amount     = parseFloat($('txnAmount').value);
-  const account_id = $('txnAccount').value;
-  const date       = $('txnDate').value;
-  const remarks    = $('txnRemarks').value.trim();
+  const id          = $('txnId').value;
+  const amount      = parseFloat($('txnAmount').value);
+  const account_id  = $('txnAccount').value;
+  const date        = $('txnDate').value;
+  const remarks     = $('txnRemarks').value.trim();
   const category_id = $('txnCategory').value || null;
   const transfer_to = $('txnTransferTo').value || null;
 
@@ -518,13 +538,13 @@ $('saveTxnBtn').onclick = async () => {
 
 // ── Reimburse ─────────────────────────────────────────────────────────────────
 function reimburseCardHTML(x) {
-  const due     = Number(x.total_amount) - Number(x.paid_back || 0);
-  const pct     = Math.min(100, Math.round((Number(x.paid_back||0) / Number(x.total_amount)) * 100));
-  const status  = x.status || 'pending';
-  const initial = (x.person_name?.[0] || '?').toUpperCase();
-  const amtCls  = status==='settled' ? 'amount-settled' : status==='partial' ? 'amount-partial' : 'amount-pending';
+  const due    = Number(x.total_amount) - Number(x.paid_back || 0);
+  const pct    = Math.min(100, Math.round((Number(x.paid_back||0) / Number(x.total_amount)) * 100));
+  const status = x.status || 'pending';
+  const initial= (x.person_name?.[0] || '?').toUpperCase();
+  const amtCls = status==='settled' ? 'green' : status==='partial' ? 'orange' : 'red';
   const displayAmt = status==='settled' ? fmt(x.total_amount) : `-${fmt(due)}`;
-  const remarksHTML = x.remarks ? `<div class="reimb-remarks">${x.remarks}</div>` : '';
+  const remarksHTML = x.remarks ? `<div class="txn-sub" style="margin-top:4px">${x.remarks}</div>` : '';
   return `<div class="reimb-card status-${status}">
     <div class="reimb-card-top">
       <div class="reimb-avatar status-${status}">${initial}</div>
@@ -549,17 +569,15 @@ function reimburseCardHTML(x) {
       ${status !== 'settled'
         ? `<button class="btn-sm" onclick="openPayback('${x.id}')">Record payback</button>`
         : ''}
-      <button class="btn-danger" onclick="deleteReimburse('${x.id}')">Delete</button>
+      <button class="btn-sm danger" onclick="deleteReimburse('${x.id}')">Delete</button>
     </div>
   </div>`;
 }
 
 function renderReimburse() {
-  // ── Tab active state ──
   document.querySelectorAll('[data-reimb-tab]').forEach(b =>
     b.classList.toggle('active', b.dataset.reimbTab === reimbActiveTab));
 
-  // ── Stats row ──
   const totalDue = reimbursements
     .filter(x => x.status !== 'settled')
     .reduce((s,x) => s + (Number(x.total_amount) - Number(x.paid_back||0)), 0);
@@ -573,19 +591,15 @@ function renderReimburse() {
     <div class="reimb-stat"><span class="reimb-stat-label">Due</span><span class="reimb-stat-val orange">${fmt(totalDue)}</span></div>
     <div class="reimb-stat"><span class="reimb-stat-label">Settled</span><span class="reimb-stat-val green">${fmt(totalSettled)}</span></div>`;
 
-  // ── Filter by active tab ──
-  // pending tab → show pending + partial
-  // settled tab → show settled only
   const filtered = reimbActiveTab === 'settled'
     ? reimbursements.filter(x => x.status === 'settled')
     : reimbursements.filter(x => x.status !== 'settled');
 
   $('reimburseList').innerHTML = filtered.length
     ? filtered.map(reimburseCardHTML).join('')
-    : `<div class="reimb-empty">No ${reimbActiveTab === 'settled' ? 'refunded' : 'pending'} entries yet.</div>`;
+    : `<div class="reimb-empty">No ${reimbActiveTab==='settled'?'refunded':'pending'} entries yet.</div>`;
 }
 
-// Wire reimburse tab buttons
 document.querySelectorAll('[data-reimb-tab]').forEach(btn => {
   btn.onclick = () => {
     reimbActiveTab = btn.dataset.reimbTab;
@@ -621,7 +635,6 @@ $('saveReimburseBtn').onclick = async () => {
     date, remarks: remarks || `Reimburse: ${person_name}`,
     is_transfer: false, reimburse_id: rb.id,
   });
-
   closeModal('reimburseModal'); await loadAll(); render(); toast('Added');
 };
 
@@ -679,14 +692,18 @@ function renderReports() {
   $('reportCatList').innerHTML = Object.entries(map).sort((a,b)=>b[1]-a[1]).map(([cid, amt]) => {
     const cat = categories.find(c=>c.id===cid);
     const pct = Math.round(amt/total*100);
-    return `<div class="txn-item">
-      <div class="ico-circle">${iconHTML(cat?.emoji,'📂')}</div>
-      <div class="txn-meta">${cat?.name||'Other'}
-        <div class="progress-bar-wrap" style="margin-top:4px">
-          <div class="progress-bar" style="width:${pct}%"></div>
+    const iconEl = String(cat?.emoji||'').startsWith('http')
+      ? `<img src="${cat.emoji}" style="width:22px;height:22px;object-fit:contain;display:block"/>`
+      : `<span style="font-size:18px">${cat?.emoji||'📂'}</span>`;
+    return `<div class="list-row">
+      <div class="txn-icon">${iconEl}</div>
+      <div class="txn-meta">
+        <div class="txn-label">${cat?.name||'Other'}</div>
+        <div style="margin-top:4px;height:4px;border-radius:999px;background:var(--surface3);overflow:hidden">
+          <div style="width:${pct}%;height:100%;background:var(--primary);border-radius:999px"></div>
         </div>
       </div>
-      <div class="txn-right">${fmt(amt,s)}</div>
+      <strong style="font-size:13px;font-weight:700;flex-shrink:0">${fmt(amt,s)}</strong>
     </div>`;
   }).join('') || '<div class="empty-state">No expense data this month.</div>';
 }
@@ -710,14 +727,21 @@ $('exportCsvBtn').onclick = () => {
 function renderSettings() {
   renderProfile();
   $('categoryList').innerHTML = categories.length
-    ? categories.map(c => `
-      <div class="txn-item">
-        <div class="ico-circle">${iconHTML(c.emoji,'📂')}</div>
-        <div class="txn-meta"><div class="txn-cat">${c.name}</div><div class="txn-sub">${c.type}</div></div>
-        ${!c.is_default
-          ? `<button class="btn-danger" style="margin-left:auto" onclick="deleteCat('${c.id}')">Del</button>`
-          : ''}
-      </div>`).join('')
+    ? categories.map(c => {
+        const iconEl = String(c.emoji||'').startsWith('http')
+          ? `<img src="${c.emoji}" style="width:22px;height:22px;object-fit:contain;display:block"/>`
+          : `<span style="font-size:18px">${c.emoji||'📂'}</span>`;
+        return `<div class="list-row">
+          <div class="txn-icon">${iconEl}</div>
+          <div class="txn-meta">
+            <div class="txn-label">${c.name}</div>
+            <div class="txn-sub">${c.type}</div>
+          </div>
+          ${!c.is_default
+            ? `<button class="btn-sm danger" style="flex-shrink:0" onclick="deleteCat('${c.id}')">Del</button>`
+            : ''}
+        </div>`;
+      }).join('')
     : '<div class="empty-state">No categories yet.</div>';
 }
 
@@ -801,8 +825,8 @@ function buildMappingGrid() {
   const fields = expectedFields(currentImportKind);
   box.innerHTML = '';
   fields.forEach(f => {
-    const d = document.createElement('div'); d.className='mapping-card';
-    d.innerHTML = `<label>${f}</label>
+    const d = document.createElement('div'); d.className='map-row';
+    d.innerHTML = `<label class="label">${f}</label>
       <select class="input import-map" data-target="${f}">
         <option value="">-- ignore --</option>
         ${importHeaders.map(h=>`<option value="${h}">${h}</option>`).join('')}
@@ -876,8 +900,8 @@ async function runImport() {
   if (currentImportKind==='transactions') {
     const payload=[];
     for (const row of importRows) {
-      const obj = Object.fromEntries(importHeaders.map((h,i)=>[h, String(row[i]??'').trim()]));
-      let amount = Math.abs(Number(obj[mp.amount]||0));
+      const obj    = Object.fromEntries(importHeaders.map((h,i)=>[h, String(row[i]??'').trim()]));
+      let amount   = Math.abs(Number(obj[mp.amount]||0));
       if (flip) amount = Math.abs(-amount);
       if (!amount) { skippedNoAmount++; continue; }
       let type='expense';
@@ -887,7 +911,7 @@ async function runImport() {
       }
       const acc = findAccount(obj[mp.account]);
       if (!acc) { skippedAccNames.push(obj[mp.account]||'(empty)'); continue; }
-      const cat = findCategory(obj[mp.category], type);
+      const cat  = findCategory(obj[mp.category], type);
       const item = {
         user_id: USER.id, date: parseDate(obj[mp.date]), amount, type,
         category_id: cat?.id||null, account_id: acc.id,
@@ -1035,6 +1059,15 @@ $('themeBtn').onclick = () => {
 // ── Sidebar / nav ─────────────────────────────────────────────────────────────
 $('menuBtn').onclick        = () => document.body.classList.toggle('sidebar-open');
 $('sidebarOverlay').onclick = () => document.body.classList.remove('sidebar-open');
+
+document.body.addEventListener('click', e => {
+  if (e.target.closest('.sidebar-open')) return;
+});
+
+document.querySelectorAll('[data-route]').forEach(a => {
+  a.addEventListener('click', () => document.body.classList.remove('sidebar-open'));
+});
+
 window.addEventListener('hashchange', () => render());
 
 $('logoutBtn').onclick = async () => {
