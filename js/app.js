@@ -124,10 +124,10 @@ async function loadAll() {
   const uid = USER.id;
   const [r1,r2,r3,r4,r5] = await Promise.all([
     supabase.from('accounts').select('*').eq('user_id',uid).eq('is_archived',false).order('created_at'),
-                                             supabase.from('categories').select('*').eq('user_id',uid).order('type').order('name'),
-                                             supabase.from('transactions').select('*').eq('user_id',uid).order('date',{ascending:false}).order('created_at',{ascending:false}).limit(3000),
-                                             supabase.from('reimbursements').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
-                                             supabase.from('profiles').select('*').eq('id',uid).single(),
+    supabase.from('categories').select('*').eq('user_id',uid).order('type').order('name'),
+    supabase.from('transactions').select('*').eq('user_id',uid).order('date',{ascending:false}).order('created_at',{ascending:false}).limit(3000),
+    supabase.from('reimbursements').select('*').eq('user_id',uid).order('created_at',{ascending:false}),
+    supabase.from('profiles').select('*').eq('id',uid).maybeSingle(),
   ]);
   accounts = r1.data || [];
   categories = r2.data || [];
