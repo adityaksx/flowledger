@@ -229,7 +229,7 @@ function findCategory(name, type) {
       || null;
 }
 
-// ── Transaction row HTML (uses CSS classes from app.css) ──────────────────────
+// ── Transaction row HTML ──────────────────────────────────────────────────────
 function txnHTML(t) {
   const cat   = categories.find(c => c.id === t.category_id);
   const acc   = accounts.find(a => a.id === t.account_id);
@@ -241,7 +241,6 @@ function txnHTML(t) {
   const sign  = t.is_transfer ? '⇄' : t.type==='income' ? '+' : '-';
   const cls   = type==='income' ? 'green' : type==='expense' ? 'red' : 'orange';
 
-  // icon: URL → img tag, emoji → span
   const iconEl = String(emoji).startsWith('http')
     ? `<img src="${emoji}" style="width:26px;height:26px;object-fit:contain;display:block" />`
     : `<span style="font-size:20px;line-height:1">${emoji}</span>`;
@@ -536,44 +535,61 @@ $('saveTxnBtn').onclick = async () => {
 [$('txnFilterType'), $('txnFilterAccount'), $('txnFilterMonth')].forEach(el =>
   el?.addEventListener('change', renderTransactions));
 
-// ── Reimburse ─────────────────────────────────────────────────────────────────
+// ── Reimburse card HTML ───────────────────────────────────────────────────────
 function reimburseCardHTML(x) {
   const due    = Number(x.total_amount) - Number(x.paid_back || 0);
   const pct    = Math.min(100, Math.round((Number(x.paid_back||0) / Number(x.total_amount)) * 100));
   const status = x.status || 'pending';
-  const initial= (x.person_name?.[0] || '?').toUpperCase();
-  const amtCls = status==='settled' ? 'green' : status==='partial' ? 'orange' : 'red';
-  const displayAmt = status==='settled' ? fmt(x.total_amount) : `-${fmt(due)}`;
-  const remarksHTML = x.remarks ? `<div class="txn-sub" style="margin-top:4px">${x.remarks}</div>` : '';
+
+  // Category icon from linked expense transaction
+  const linkedTxn = transactions.find(t => t.reimburse_id === x.id && t.type === 'expense');
+  const cat = linkedTxn ? categories.find(c => c.id === linkedTxn.category_id) : null;
+  const acc = linkedTxn ? accounts.find(a => a.id === linkedTxn.account_id) : null;
+  const date = linkedTxn?.date || x.created_at?.slice(0,10) || '';
+
+  const iconEl = cat?.emoji
+    ? (String(cat.emoji).startsWith('http')
+        ? `<img src="${cat.emoji}" />`
+        : `<span style="font-size:22px;line-height:1">${cat.emoji}</span>`)
+    : `<span style="font-size:22px">🔄</span>`;
+
+  const amtCls = status==='settled' ? 'amt-settled' : status==='partial' ? 'amt-partial' : 'amt-pending';
+  const displayAmt = status==='settled' ? `+${fmt(x.total_amount)}` : `-${fmt(due)}`;
+
   return `<div class="reimb-card status-${status}">
-    <div class="reimb-card-top">
-      <div class="reimb-avatar status-${status}">${initial}</div>
-      <div class="reimb-info">
-        <div class="reimb-name">${x.person_name}</div>
-        <div class="reimb-meta-row">
-          <span class="reimb-chip chip-total">Total ${fmt(x.total_amount)}</span>
-          <span class="reimb-chip chip-paid">Paid ${fmt(x.paid_back||0)}</span>
-          ${due > 0 ? `<span class="reimb-chip chip-due">Due ${fmt(due)}</span>` : ''}
-        </div>
+    <div class="reimb-icon-bubble">${iconEl}</div>
+    <div class="reimb-info">
+      <div class="reimb-person">${x.person_name}</div>
+      <div class="reimb-sub-row">
+        ${date ? `<span class="reimb-chip chip-date">📅 ${date}</span>` : ''}
+        ${acc  ? `<span class="reimb-chip chip-account">🏦 ${acc.name}</span>` : ''}
+        ${cat  ? `<span class="reimb-chip chip-cat">${cat.name}</span>` : ''}
       </div>
-      <div class="reimb-amount-col">
-        <span class="reimb-amount ${amtCls}">${displayAmt}</span>
-        <span class="reimb-badge status-${status}">${status}</span>
+      <div class="reimb-progress-wrap" style="margin-top:6px">
+        <div class="reimb-progress-fill" style="width:${pct}%"></div>
       </div>
+      <div class="reimb-sub-row" style="margin-top:4px">
+        <span style="font-size:10px;color:var(--muted);font-weight:600">Total ${fmt(x.total_amount)}</span>
+        <span style="font-size:10px;color:var(--muted);font-weight:600">Paid ${fmt(x.paid_back||0)}</span>
+        ${due > 0 ? `<span style="font-size:10px;font-weight:700;color:var(--orange)">Due ${fmt(due)}</span>` : ''}
+      </div>
+      ${x.remarks ? `<div class="reimb-remarks">${x.remarks}</div>` : ''}
     </div>
-    <div class="reimb-progress-wrap">
-      <div class="reimb-progress-fill" style="width:${pct}%"></div>
+    <div class="reimb-amount-col">
+      <span class="reimb-amount ${amtCls}">${displayAmt}</span>
+      <span class="reimb-total-label">${status}</span>
     </div>
-    ${remarksHTML}
-    <div class="reimb-actions">
+    <div class="reimb-card-actions">
       ${status !== 'settled'
-        ? `<button class="btn-sm" onclick="openPayback('${x.id}')">Record payback</button>`
+        ? `<button class="reimb-action-btn" title="Record payback" onclick="openPayback('${x.id}')">💰</button>`
         : ''}
-      <button class="btn-sm danger" onclick="deleteReimburse('${x.id}')">Delete</button>
+      <button class="reimb-action-btn" title="Edit" onclick="editReimburse('${x.id}')">✏️</button>
+      <button class="reimb-action-btn danger" title="Delete" onclick="deleteReimburse('${x.id}')">🗑️</button>
     </div>
   </div>`;
 }
 
+// ── Render reimburse ──────────────────────────────────────────────────────────
 function renderReimburse() {
   document.querySelectorAll('[data-reimb-tab]').forEach(b =>
     b.classList.toggle('active', b.dataset.reimbTab === reimbActiveTab));
@@ -591,9 +607,16 @@ function renderReimburse() {
     <div class="reimb-stat"><span class="reimb-stat-label">Due</span><span class="reimb-stat-val orange">${fmt(totalDue)}</span></div>
     <div class="reimb-stat"><span class="reimb-stat-label">Settled</span><span class="reimb-stat-val green">${fmt(totalSettled)}</span></div>`;
 
-  const filtered = reimbActiveTab === 'settled'
+  // Filter by tab, then sort latest first by linked txn date or created_at
+  const filtered = (reimbActiveTab === 'settled'
     ? reimbursements.filter(x => x.status === 'settled')
-    : reimbursements.filter(x => x.status !== 'settled');
+    : reimbursements.filter(x => x.status !== 'settled'))
+    .slice()
+    .sort((a, b) => {
+      const da = transactions.find(t => t.reimburse_id === a.id)?.date || a.created_at || '';
+      const db = transactions.find(t => t.reimburse_id === b.id)?.date || b.created_at || '';
+      return db.localeCompare(da);
+    });
 
   $('reimburseList').innerHTML = filtered.length
     ? filtered.map(reimburseCardHTML).join('')
@@ -608,34 +631,71 @@ document.querySelectorAll('[data-reimb-tab]').forEach(btn => {
 });
 
 $('addReimburseBtn').onclick = () => {
+  if ($('reimbId')) $('reimbId').value = '';
   $('reimbPersonName').value = '';
   $('reimbAmount').value     = '';
   $('reimbRemarks').value    = '';
   $('reimbDate').value       = today();
   accSelect('reimbAccount');
   catSelect('reimbCategory', 'expense');
+  if ($('reimburseModalTitle')) $('reimburseModalTitle').textContent = 'New Reimbursement';
   openModal('reimburseModal');
 };
 
 $('saveReimburseBtn').onclick = async () => {
+  const id           = $('reimbId')?.value || '';
   const person_name  = $('reimbPersonName').value.trim();
   const total_amount = parseFloat($('reimbAmount').value);
   const account_id   = $('reimbAccount').value;
   const date         = $('reimbDate').value;
   const remarks      = $('reimbRemarks').value.trim();
+  const category_id  = $('reimbCategory')?.value || null;
   if (!person_name || !total_amount || !account_id) return toast('Fill all fields');
 
-  const { data: rb, error } = await supabase.from('reimbursements')
-    .insert({ user_id:USER.id, person_name, total_amount, paid_back:0, status:'pending' })
-    .select().single();
-  if (error) return toast(error.message);
+  if (id) {
+    // Edit existing
+    await supabase.from('reimbursements').update({ person_name, total_amount, remarks }).eq('id', id);
+    const linked = transactions.find(t => t.reimburse_id === id && t.type === 'expense');
+    if (linked) {
+      await supabase.from('transactions').update({
+        account_id, amount: total_amount, date,
+        remarks: remarks || `Reimburse: ${person_name}`,
+        category_id: category_id || null,
+      }).eq('id', linked.id);
+    }
+    toast('Updated');
+  } else {
+    // New
+    const { data: rb, error } = await supabase.from('reimbursements')
+      .insert({ user_id:USER.id, person_name, total_amount, paid_back:0, status:'pending', remarks })
+      .select().single();
+    if (error) return toast(error.message);
+    await supabase.from('transactions').insert({
+      user_id: USER.id, account_id, amount: total_amount, type: 'expense',
+      date, remarks: remarks || `Reimburse: ${person_name}`,
+      is_transfer: false, reimburse_id: rb.id,
+      category_id: category_id || null,
+    });
+    toast('Added');
+  }
+  closeModal('reimburseModal');
+  await loadAll(); render();
+};
 
-  await supabase.from('transactions').insert({
-    user_id: USER.id, account_id, amount: total_amount, type: 'expense',
-    date, remarks: remarks || `Reimburse: ${person_name}`,
-    is_transfer: false, reimburse_id: rb.id,
-  });
-  closeModal('reimburseModal'); await loadAll(); render(); toast('Added');
+window.editReimburse = id => {
+  const x = reimbursements.find(r => r.id === id); if (!x) return;
+  if ($('reimbId')) $('reimbId').value = id;
+  $('reimbPersonName').value = x.person_name;
+  $('reimbAmount').value     = x.total_amount;
+  $('reimbRemarks').value    = x.remarks || '';
+  const linked = transactions.find(t => t.reimburse_id === id && t.type === 'expense');
+  $('reimbDate').value = linked?.date || today();
+  accSelect('reimbAccount');
+  if (linked) $('reimbAccount').value = linked.account_id;
+  catSelect('reimbCategory', 'expense');
+  if (linked && $('reimbCategory')) $('reimbCategory').value = linked.category_id || '';
+  if ($('reimburseModalTitle')) $('reimburseModalTitle').textContent = 'Edit Reimbursement';
+  openModal('reimburseModal');
 };
 
 window.openPayback = id => {
